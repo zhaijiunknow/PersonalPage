@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无限视界 | 档案库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;500;700&display=swap');
+
+        :root {
+            --primary: #00f3ff;
+            --secondary: #bc13fe;
+            --bg-color: #050505;
+            --glass: rgba(10, 15, 20, 0.85);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* --- UI Components --- */
+        .glass-panel {
+            background: var(--glass);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-panel:hover {
+            border-color: rgba(0, 243, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+        }
+
+        
+        /* --- Navbar Specific Styles --- */
+        .nav-link {
+            position: relative;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #555;
+            text-decoration: none;
+            padding: 5px 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link .nav-icon {
+            font-size: 0.7rem;
+            opacity: 0;
+            transform: translateX(-5px);
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+        }
+
+        .nav-link:hover .nav-icon, .nav-link.active .nav-icon {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+            transition: all 0.3s;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
+        .shadow-blue-glow {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <div>
+        <nav id="system-navbar" class="fixed top-0 left-0 w-full h-14 z-[100] flex items-center justify-between px-6 border-b border-cyan-500/30 bg-[#050505]/90 backdrop-blur-md">
+            <!-- Left: System Status Icon -->
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 group cursor-pointer">
+                    <div class="w-8 h-8 rounded border border-cyan-500/50 flex items-center justify-center bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-all">
+                        <i class="fas fa-fingerprint text-cyan-400 text-sm"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-orbitron text-[10px] text-cyan-400 tracking-widest">SYSTEM_ONLINE</span>
+                        <span class="font-mono text-[9px] text-gray-500">V.2.0.4 stable</span>
+                    </div>
+                </div>
+                <div class="h-4 w-[1px] bg-gray-800 mx-2"></div>
+                <!-- Ping Status -->
+                <div class="flex items-center gap-2 opacity-60">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="font-mono text-[10px] text-gray-400">LATENCY: 24ms</span>
+                </div>
+            </div>
+            <!-- Center: Navigation Links -->
+            <div class="hidden md:flex items-center gap-12 absolute left-1/2 transform -translate-x-1/2">
+                <a href="index.html" class="nav-link" data-target="home">
+                    <span class="nav-icon"><i class="fas fa-home"></i></span> 主控台
+                </a>
+                <a href="#" class="nav-link active" data-target="archive">
+                    <span class="nav-icon"><i class="fas fa-box-open"></i></span> 档案库
+                </a>
+                <a href="#" class="nav-link" data-target="settings">
+                    <span class="nav-icon"><i class="fas fa-sliders-h"></i></span> 系统设置
+                </a>
+            </div>
+    
+        </nav>
+    </div>
+    
+
+    
+
+   
+
+        
+</body>
+</html>

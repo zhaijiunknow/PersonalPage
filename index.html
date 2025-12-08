@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无限视界</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;500;700&display=swap');
+
+        :root {
+            --primary: #00f3ff;
+            --secondary: #bc13fe;
+            --danger: #ff2a2a;
+            --bg-color: #050505;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow: hidden;
+            cursor: none; /* Hide default cursor */
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+        }
+
+        /* --- Custom Cursor --- */
+        #cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+            mix-blend-mode: difference;
+        }
+        
+        #cursor.hovered {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 243, 255, 0.2);
+            border-color: var(--secondary);
+        }
+
+        #cursor.enemy-hover {
+            border-color: var(--danger);
+            background-color: rgba(255, 42, 42, 0.2);
+        }
+
+        /* --- Background Canvas --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* --- Card Styles (Base) --- */
+        .card-container {
+            perspective: 1000px;
+            transform-style: preserve-3d;
+            
+            /* 使用 clamp 实现响应式宽度：最小240px，首选22vw，最大340px */
+            /* 这样在小屏幕不至于太小，大屏幕不至于太大 */
+            width: clamp(200px, 22vw, 280px);
+            
+            /* 保持固定的纵横比 (5:8)，高度会自动计算 */
+            aspect-ratio: 5 / 8;
+            
+            position: relative;
+        }
+        .game-card, .enemy-card {
+            width: 100%; /* 改为100%继承容器宽度 */
+            aspect-ratio: 5 / 8; /* 改为100%继承容器高度 */
+            border-radius: 15px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out, box-shadow 0.3s;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        /* Player Card Specifics */
+        .game-card {
+            background: rgba(20, 20, 35, 0.85);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        /* Enemy Card Specifics */
+        .enemy-card {
+            background: rgba(40, 10, 10, 0.85);
+            border: 1px solid rgba(255, 42, 42, 0.4);
+            box-shadow: 0 0 20px rgba(255, 42, 42, 0.3);
+        }
+
+        .card-content {
+            position: absolute;
+            inset: 4px;
+            background: rgba(10, 10, 12, 0.95);
+            border-radius: 12px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* 新增：防止内容溢出时出现滚动条（可选，也可加overflow-y: auto） */
+            box-sizing: border-box;
+        }
+        /* 卡片标题 */
+        .card-content h2 {
+            font-size: clamp(0.9rem, 1.8vw, 1.2rem); /* 小屏0.9rem，大屏最大1.2rem */
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+            line-height: 1.2; /* 行高适配，避免换行异常 */
+            margin-bottom: 0.25rem;
+        }
+        .card-content p {
+            font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+        }
+        /* 卡片描述文本 */
+        .card-content .text-gray-400 {
+            font-size: clamp(0.55rem, 0.9vw, 0.7rem);
+            line-height: 1.4; /* 增加行高，小屏更易读 */
+        }
+
+        /* 属性值（ATK/DEF数值） */
+        .card-content .text-red-400, .card-content .text-blue-400 {
+            font-size: clamp(0.6rem, 1vw, 0.75rem);
+        }
+
+        /* 激活技能按钮文字 */
+        .glowing-btn {
+            font-size: clamp(0.65rem, 1.1vw, 0.8rem);
+            padding: clamp(0.5rem, 1vw, 0.75rem) 0; /* 按钮内边距也适配 */
+        }
+        /* 卡片内图片容器 */
+        .card-content > div:first-child {
+            /* 保持图片区域占卡片高度的50%，适配不同尺寸卡片 */
+            height: 50%;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        /* 图片自适应 */
+        .card-content img {
+            width: 100%;
+            height: 100%;
+            
+        }   
+
+        .card-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid var(--primary);
+            border-radius: 15px;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .enemy-card .card-frame {
+            border-color: var(--danger);
+        }
+
+        /* Holographic Sheen */
+        .holo-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 15px;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }
+
+        .game-card .holo-overlay {
+            background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.1) 25%, transparent 40%, rgba(0, 243, 255, 0.2) 45%, transparent 50%);
+        }
+
+        .enemy-card .holo-overlay {
+            background: linear-gradient(105deg, transparent 20%, rgba(255, 100, 100, 0.1) 25%, transparent 40%, rgba(255, 0, 0, 0.2) 45%, transparent 50%);
+        }
+
+        .game-card:hover .holo-overlay, .enemy-card:hover .holo-overlay {
+            opacity: 1;
+        }
+
+        /* Animations */
+        @keyframes attack-lunge {
+            0% { transform: translateX(0) scale(1); }
+            50% { transform: translateX(100px) scale(1.1) rotate(5deg); }
+            100% { transform: translateX(0) scale(1); }
+        }
+
+        @keyframes damage-shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px) rotate(-5deg); filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(5); }
+            50% { transform: translateX(10px) rotate(5deg); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); filter: none; }
+        }
+
+        @keyframes cardEnter {
+            from { transform: translateY(50px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .card-enter { animation: cardEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-attack { animation: attack-lunge 0.3s ease-in-out; }
+        .animate-damage { animation: damage-shake 0.4s ease-in-out; }
+
+        /* Glitch Text */
+        .glitch-text { position: relative; font-family: 'Orbitron', sans-serif; }
+        .glitch-text::before, .glitch-text::after {
+            content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color);
+        }
+        .glitch-text::before { left: 2px; text-shadow: -1px 0 #ff00c1; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim 5s infinite linear alternate-reverse; }
+        .glitch-text::after { left: -2px; text-shadow: -1px 0 #00fff9; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim2 5s infinite linear alternate-reverse; }
+        @keyframes glitch-anim { 0% { clip: rect(14px, 9999px, 127px, 0); } 100% { clip: rect(40px, 9999px, 80px, 0); } }
+        @keyframes glitch-anim2 { 0% { clip: rect(32px, 9999px, 4px, 0); } 100% { clip: rect(80px, 9999px, 40px, 0); } }
+
+        /* UI Elements */
+        .hud-bar {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(8px);
+        }
+
+        .glowing-btn {
+            box-shadow: 0 0 10px var(--primary);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .glowing-btn:hover {
+            box-shadow: 0 0 20px var(--primary), 0 0 40px var(--secondary);
+        }
+        .glowing-btn:active { transform: scale(0.95); }
+        .glowing-btn:disabled { filter: grayscale(1); cursor: not-allowed; box-shadow: none; opacity: 0.5; }
+
+        /* Battle Log */
+        #battle-log {
+            width: 100%;
+            height: 180px;
+            background: rgba(5, 5, 10, 0.8);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column-reverse; /* Newest at bottom visually if needed, but we prepend usually */
+        }
+        
+        #battle-log::-webkit-scrollbar { width: 4px; }
+        #battle-log::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 2px; }
+
+        .log-entry { margin-bottom: 4px; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); animation: fadeIn 0.3s forwards; }
+        .log-entry.player-action { color: var(--primary); }
+        .log-entry.enemy-action { color: var(--danger); }
+        .log-entry.system { color: #888; font-style: italic; }
+        .log-entry.victory { color: #4ade80; font-weight: bold; text-shadow: 0 0 5px #4ade80; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Stats Bars */
+        .stat-bar-container { background: rgba(255,255,255,0.1); border-radius: 4px; height: 10px; overflow: hidden; position: relative; }
+        .stat-bar-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* Floating Damage Text */
+        .damage-text {
+            position: fixed;
+            color: red;
+            font-weight: bold;
+            font-family: 'Orbitron';
+            font-size: 2rem;
+            pointer-events: none;
+            animation: floatUp 1s forwards;
+            z-index: 9999;
+            text-shadow: 0 0 5px black;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1); opacity: 0; }
+        }
+        /* --- Navbar Specific Styles --- */
+        .nav-link {
+            position: relative;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #555;
+            text-decoration: none;
+            padding: 5px 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link .nav-icon {
+            font-size: 0.7rem;
+            opacity: 0;
+            transform: translateX(-5px);
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+        }
+
+        .nav-link:hover .nav-icon, .nav-link.active .nav-icon {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+            transition: all 0.3s;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
+        .shadow-blue-glow {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+        }
+        /* 极窄屏幕适配：768px以下改为上下分布 */
+        @media (max-width: 768px) {
+            /* 主游戏区域从水平flex改为垂直flex */
+            .fixed.inset-0.flex.items-center.justify-center {
+                flex-direction: column;
+                padding: 0;
+                overflow-y: auto; /* 允许垂直滚动，避免内容溢出 */
+                padding-top: 850px; /* 避开顶部导航栏 */
+                padding-bottom: 180px; /* 避开底部HUD */
+            }
+
+            /* 调整卡片容器的间距和位置 */
+            .flex.flex-col.items-center.gap-4.relative.z-50 {
+                margin: 0 !important; /* 移除左右margin */
+                margin-bottom: 20px !important; /* 卡片之间增加底部间距 */
+                width: 100%;
+                align-items: center;
+            }
+
+            /* 核心修改：hud-bar完全竖向排列 */
+    .hud-bar {
+        flex-direction: column !important; /* 强制竖向 */
+        gap: 12px !important; /* 增加元素间距 */
+        justify-content: left;
+        padding: 12px !important; /* 调整内边距 */
+        align-items: stretch !important; /* 子元素拉伸占满宽度 */
+    }
+    /* hud-bar内部的分隔线调整 */
+    .hud-bar .h-8.w-1.bg-gray-600 {
+        width: 100% !important; /* 宽度拉满 */
+        height: 1px !important; /* 改为横线 */
+        background-color: #444 !important;
+        margin: 4px 0 !important;
+    }
+    /* 操作按钮区域调整为横向排列（在竖向HUD内更合理） */
+    .hud-bar .flex.gap-4 {
+        width: 100%;
+        justify-content: center; /* 按钮居中 */
+        gap: 20px !important; /* 增加按钮间距 */
+        margin-top: 4px;
+    }
+
+            /* 卡片容器的最大宽度调整，适配窄屏 */
+            .card-container {
+                width: clamp(200px, 80vw, 280px); /* 窄屏占80vw，最大化利用宽度 */
+            }
+
+            /* 底部HUD适配，避免遮挡 */
+            .fixed.bottom-0.w-full.p-6 {
+                padding: 4px;
+            }
+            .hud-bar.px-8.py-4 {
+                padding: 4px 8px;
+                gap: 4px;
+            }
+            .w-48 {
+                width: 30%; /* 缩小HP/能量条宽度，适配窄屏 */
+            }
+
+            /* 顶部HUD文字缩小，避免溢出 */
+            .text-4xl {
+                font-size: clamp(1.5rem, 5vw, 2rem);
+            }
+            .glitch-text {
+                white-space: nowrap;
+            }
+
+            /* 战斗日志标题适配 */
+            .text-center.font-orbitron.text-gray-400.text-xs {
+                font-size: 0.6rem;
+            }
+
+            /* 浮动伤害文字缩小，适配窄屏 */
+            .damage-text {
+                font-size: clamp(1rem, 3vw, 1.5rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <!-- Top Navigation Bar -->
+    <nav id="system-navbar" class="fixed top-0 left-0 w-full h-14 z-[100] flex items-center justify-between px-6 border-b border-cyan-500/30 bg-[#050505]/90 backdrop-blur-md">
+        <!-- Left: System Status Icon -->
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 group cursor-pointer">
+                <div class="w-8 h-8 rounded border border-cyan-500/50 flex items-center justify-center bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-all">
+                    <i class="fas fa-fingerprint text-cyan-400 text-sm"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-orbitron text-[10px] text-cyan-400 tracking-widest">我还在</span>
+                    <span class="font-mono text-[9px] text-gray-500">V.1.0.1</span>
+                </div>
+            </div>
+            <div class="h-4 w-[1px] bg-gray-800 mx-2"></div>
+            <!-- Ping Status -->
+            <div class="flex items-center gap-2 opacity-60">
+                <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="font-mono text-[10px] text-gray-400">延迟: 24ms</span>
+            </div>
+        </div>
+  
+        <!-- Center: Navigation Links -->
+        <div class="hidden md:flex items-center gap-12 absolute left-1/2 transform -translate-x-1/2">
+            <a href="#" class="nav-link active" data-target="home">
+                <span class="nav-icon"><i class="fas fa-home"></i></span> 主控台
+            </a>
+            <a href="archive.html" class="nav-link" data-target="archive">
+                <span class="nav-icon"><i class="fas fa-box-open"></i></span> 档案库
+            </a>
+            <a href="#" class="nav-link" data-target="settings">
+                <span class="nav-icon"><i class="fas fa-sliders-h"></i></span> 系统设置
+            </a>
+        </div>
+  
+        <!-- Right: Time & Tools -->
+        <div class="flex items-center gap-5">
+            <span id="sys-time" class="font-mono text-sm text-gray-300 font-bold tracking-widest shadow-blue-glow">00:00:00</span>
+            
+            <div class="flex gap-2">
+                
+            </div>
+        </div>
+      </nav>
+    </div>
+    
+    <!-- Canvas Background -->
+    <canvas id="bg-canvas"></canvas>
+    
+    <!-- Custom Cursor -->
+    <div id="cursor"></div>
+    
+        <!-- Top HUD: Identity -->
+    <div class="fixed top-16 left-0 w-full p-6 flex justify-between items-start z-50 pointer-events-none">
+        <div>
+            <h1 class="text-4xl font-bold glitch-text text-white tracking-widest" data-text="INFINITE HORIZON">INFINITE HORIZON</h1>
+            <p class="text-cyan-400 text-sm mt-1 font-mono tracking-wide">&lt;ROLE&gt; 宅久 &lt;/ROLE&gt;</p>
+        </div>
+        
+        <!-- Global Game State -->
+        <div class="hud-bar p-4 rounded-lg flex flex-col gap-2 w-64 pointer-events-auto">
+            <div class=" flex justify-between text-xs text-gray-400 font-mono">
+                <span>SKILL_ARSENAL</span>
+                <span>READY</span>
+            </div>
+            <div class="w-full bg-gray-800 h-1 rounded overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-full w-full animate-pulse"></div>
+            </div>
+            
+        </div>
+    </div>
+
+        <!-- Main Game Area -->
+    <div class="fixed inset-0 flex items-center justify-center z-40 px-10">
+        
+        <!-- LEFT: Player Deck -->
+        <div class="flex flex-col items-center gap-4 relative z-50 mr-10">
+            <div class="text-cyan-400 font-orbitron text-sm tracking-widest mb-2">库</div>
+            
+            <div class="flex items-center gap-4">
+                <button id="prev-btn" class="text-3xl text-gray-600 hover:text-cyan-400 transition-colors p-2 pointer-events-auto hover-trigger">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="card-container">
+                    <div id="active-card-slot"></div>
+                </div>
+
+                <button id="next-btn" class="text-3xl text-gray-600 hover:text-cyan-400 transition-colors p-2 pointer-events-auto hover-trigger">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="text-xs text-gray-500 mt-2 font-mono">切换卡牌消耗 1 点能量</div>
+        </div>
+
+        <!-- CENTER: Battle Log -->
+        <div class="w-64 h-[400px] flex flex-col gap-2 mx-4 z-40">
+            <div class="text-center font-orbitron text-gray-400 text-xs">--- BATTLE LOG ---</div>
+            <div id="battle-log">
+                <div class="log-entry system">系统初始化完成...</div>
+                <div class="log-entry system">遭遇敌人</div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Enemy -->
+        <div class="flex flex-col items-center gap-4 relative z-50 ml-10">
+            <div class="text-red-500 font-orbitron text-sm tracking-widest mb-2">当前挑战</div>
+            
+            <div id="enemy-card-slot" class="card-container">
+                <!-- Enemy injected here -->
+            </div>
+            
+            <!-- Enemy HP Bar External -->
+            <div class="w-60 mt-2">
+                <div class="flex justify-between text-xs text-red-300 mb-1 font-mono">
+                    <span>ENEMY_INTEGRITY</span>
+                    <span id="enemy-hp-text">100/100</span>
+                </div>
+                <div class="stat-bar-container bg-red-900/30">
+                    <div id="enemy-hp-bar" class="stat-bar-fill bg-gradient-to-r from-red-600 to-orange-600" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- Bottom HUD: Controls & Stats -->
+    <div class="fixed bottom-0 w-full p-6 flex flex-col items-center justify-end z-50 pointer-events-none">
+        
+        <!-- Player Stats Panel -->
+        <div class="hud-bar px-8 py-4 rounded-xl flex gap-12 pointer-events-auto items-center mb-4">
+            
+            <!-- HP -->
+            <div class="w-48">
+                <div class="flex justify-between text-xs text-gray-300 mb-1 font-orbitron">
+                    <span><i class="fas fa-heart text-red-500 mr-2"></i>HP</span>
+                    <span id="player-hp-text">100/100</span>
+                </div>
+                <div class="stat-bar-container">
+                    <div id="player-hp-bar" class="stat-bar-fill bg-gradient-to-r from-red-500 to-pink-600" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <!-- Mana -->
+            <div class="w-48">
+                <div class="flex justify-between text-xs text-gray-300 mb-1 font-orbitron">
+                    <span><i class="fas fa-bolt text-yellow-400 mr-2"></i>ENERGY</span>
+                    <span id="player-mana-text">10/10</span>
+                </div>
+                <div class="stat-bar-container">
+                    <div id="player-mana-bar" class="stat-bar-fill bg-gradient-to-r from-blue-400 to-cyan-400" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="h-8 w-1 bg-gray-600"></div>
+
+            <div class="flex gap-4">
+                <button onclick="restAction()" class="group cursor-pointer hover-trigger flex flex-col items-center text-gray-400 hover:text-green-400 transition-colors">
+                    <i class="fas fa-coffee text-xl mb-1"></i>
+                    <span class="text-[10px] font-bold">休息 (回复)</span>
+                </button>
+                <button onclick="nextEnemy()" class="group cursor-pointer hover-trigger flex flex-col items-center text-gray-400 hover:text-red-400 transition-colors">
+                    <i class="fas fa-skull text-xl mb-1"></i>
+                    <span class="text-[10px] font-bold">下个挑战</span>
+                </button>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        // --- GAME DATA ---
+        
+        // 玩家技能卡牌 (Projects)
+        const projects = [
+            {
+                id: 1,
+                title: "三色回响",
+                type: "Unity / 程序",
+                image: "Image/1.jpg",
+                link: "https://www.bilibili.com/video/BV17uC4B5EX6/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
+                desc: "肉鸽卡牌",
+                attr: { attack: 45, defense: 10, cost: 3 },
+                color: "from-blue-500 to-indigo-600"
+            },
+            {
+                id: 2,
+                title: "误忘我",
+                type: "Unity / 美术",
+                image: "Image/2.jpeg",
+                link: "https://www.bilibili.com/video/BV1VnyWBAEbi/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
+                desc: "一个错误，导致完成度折半的遗憾...",
+                attr: { attack: 35, defense: 30, cost: 5 },
+                color: "from-green-400 to-blue-500"
+            },
+            {
+                id: 3,
+                title: "ForTwo42",
+                type: "Unity / 程序",
+                image: "Image/3.png",
+                link: "https://www.bilibili.com/video/BV1zeTxz6ERF/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
+                desc: "2D飞行闯关，至少拿到了三教杯的最佳公众奖不是么",
+                attr: { attack: 15, defense: 40, cost: 1 },
+                color: "from-orange-400 to-red-600"
+            }
+        ];
+
+        // 敌人 (Life Challenges)
+        const enemies = [
+            {
+                id: 1,
+                title: "拖延",
+                image: "Image/enemy.png",
+                desc: "再等等...",
+                maxHp: 150,
+                hp: 150,
+                attack: 15,
+                color: "from-red-600 to-orange-700"
+            },
+            {
+                id: 2,
+                title: "焦虑",
+                image: "Image/enemy.png",
+                desc: "你永远比不过其他人！",
+                maxHp: 200,
+                hp: 200,
+                attack: 10,
+                color: "from-blue-600 to-cyan-700"
+            },
+            {
+                id: 3,
+                title: "社交恐惧",
+                image: "Image/enemy.png",
+                desc: "自我放逐！自我放逐！",
+                maxHp: 120,
+                hp: 120,
+                attack: 25,
+                color: "from-purple-600 to-pink-700"
+            }
+        ];
+
+        // --- GAME STATE ---
+        let state = {
+            playerHp: 100,
+            maxPlayerHp: 100,
+            playerMana: 10,
+            maxPlayerMana: 10,
+            cardIndex: 0,
+            enemyIndex: 0,
+            isPlayerTurn: true
+        };
+
+        // DOM Elements
+        const el = {
+            cardSlot: document.getElementById('active-card-slot'),
+            enemySlot: document.getElementById('enemy-card-slot'),
+            log: document.getElementById('battle-log'),
+            hpText: document.getElementById('player-hp-text'),
+            hpBar: document.getElementById('player-hp-bar'),
+            manaText: document.getElementById('player-mana-text'),
+            manaBar: document.getElementById('player-mana-bar'),
+            enemyHpText: document.getElementById('enemy-hp-text'),
+            enemyHpBar: document.getElementById('enemy-hp-bar'),
+            prevBtn: document.getElementById('prev-btn'),
+            nextBtn: document.getElementById('next-btn')
+        };
+
+        // --- RENDER FUNCTIONS ---
+
+        function renderPlayerCard(index) {
+            const p = projects[index];
+            
+            const html = `
+                <div class="game-card card-enter hover-trigger" id="player-card">
+                    <div class="card-frame"></div>
+                    <div class="holo-overlay"></div>
+                    <div class="card-content">
+                        <!-- Image -->
+                        
+                        <div class="h-1/2 w-full relative overflow-hidden bg-black">
+                            <a href="${p.link}">
+                                <img src="${p.image}" class="object-cover w-full h-full opacity-80 hover:scale-110 transition-transform duration-700" alt="${p.title}">
+                                <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-[#0f0f13] to-transparent"></div>
+                                <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/20 text-[10px] text-white font-mono">
+                                    LV.${Math.ceil(p.attr.attack / 10)}
+                                </div>
+                            </a>
+                            
+                        </div>
+                        
+                        <!-- Details -->
+                        <div class="p-4 flex flex-col h-1/2 justify-between relative z-10">
+                            <div>
+                                <h2 class="text-lg font-bold font-orbitron text-white leading-tight">${p.title}</h2>
+                                <p class="text-[10px] text-cyan-400 font-mono mb-1">[ ${p.type} ]</p>
+                                <p class="text-[10px] text-gray-400 leading-relaxed">${p.desc}</p>
+                            </div>
+
+                            <!-- Attributes -->
+                            <div class="bg-black/30 p-1 rounded border border-white/5 mt-1 space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-gray-500 w-6">ATK</span>
+                                    <div class="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-red-500 to-orange-500" style="width: ${p.attr.attack}%"></div>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-red-400">${p.attr.attack}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-gray-500 w-6">DEF</span>
+                                    <div class="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-blue-500 to-cyan-500" style="width: ${p.attr.defense}%"></div>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-blue-400">${p.attr.defense}</span>
+                                </div>
+                            </div>
+
+                            <button onclick="playCard()" ${state.playerMana < p.attr.cost ? 'disabled' : ''} 
+                                class="w-full mt-2 py-2 bg-gradient-to-r ${p.color} rounded text-xs font-bold text-white uppercase tracking-wider glowing-btn hover-trigger flex justify-between px-4 items-center">
+                                <span>激活技能</span>
+                                <span class="flex items-center gap-1 text-[10px]"><i class="fas fa-bolt text-yellow-300"></i> -${p.attr.cost}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            el.cardSlot.innerHTML = html;
+            const card = document.getElementById('player-card');
+            bindTiltEffect(card);
+        }
+
+        function renderEnemyCard() {
+            const e = enemies[state.enemyIndex];
+            
+            const html = `
+                <div class="enemy-card hover-trigger" id="active-enemy-card">
+                    <div class="card-frame"></div>
+                    <div class="holo-overlay"></div>
+                    <div class="card-content">
+                        <div class="h-1/2 w-full relative overflow-hidden bg-black">
+                            <img src="${e.image}" class="object-cover w-full h-full opacity-80" style="filter: hue-rotate(-20deg) contrast(1.2);">
+                            <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-[#1a0505] to-transparent"></div>
+                            <div class="absolute top-2 left-2 bg-red-900/80 backdrop-blur-md px-2 py-1 rounded border border-red-500/50 text-[10px] text-white font-mono">
+                                THREAT LEVEL: EXTREME
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 flex flex-col h-1/2 relative z-10">
+                            <h2 class="text-xl font-bold font-orbitron text-red-500 mb-1">${e.title}</h2>
+                            <p class="text-xs text-gray-400 mb-4">${e.desc}</p>
+                            
+                            <div class="mt-auto border-t border-red-900/50 pt-3">
+                                <div class="flex justify-between text-xs text-red-300 mb-2">
+                                    <span>攻击力</span>
+                                    <span>${e.attack} / TURN</span>
+                                </div>
+                                <div class="text-[10px] text-gray-500 italic text-center">
+                                    "小心，它正在吞噬你的时间..."
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            el.enemySlot.innerHTML = html;
+            const card = document.getElementById('active-enemy-card');
+            bindTiltEffect(card);
+        }
+
+        function updateUI() {
+            // Player Stats
+            el.hpText.innerText = `${state.playerHp}/${state.maxPlayerHp}`;
+            el.hpBar.style.width = `${(state.playerHp / state.maxPlayerHp) * 100}%`;
+            
+            el.manaText.innerText = `${state.playerMana}/${state.maxPlayerMana}`;
+            el.manaBar.style.width = `${(state.playerMana / state.maxPlayerMana) * 100}%`;
+
+            // Enemy Stats
+            const e = enemies[state.enemyIndex];
+            el.enemyHpText.innerText = `${e.hp}/${e.maxHp}`;
+            el.enemyHpBar.style.width = `${(e.hp / e.maxHp) * 100}%`;
+
+            // Re-render player card to update button disabled state
+            renderPlayerCard(state.cardIndex);
+        }
+
+        function log(msg, type = 'system') {
+            const div = document.createElement('div');
+            div.className = `log-entry system `;
+            div.innerText = msg;
+            el.log.prepend(div);
+            // Limit log size
+            if(el.log.children.length > 20) el.log.lastChild.remove();
+        }
+
+        // --- COMBAT LOGIC ---
+
+        function showFloatingText(text, x, y, color = 'red') {
+            const div = document.createElement('div');
+            div.className = 'damage-text';
+            div.style.left = x + 'px';
+            div.style.top = y + 'px';
+            div.style.color = color;
+            div.innerText = text;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 1000);
+        }
+
+        function playCard() {
+            if (!state.isPlayerTurn) return;
+            const card = projects[state.cardIndex];
+            const enemy = enemies[state.enemyIndex];
+
+            if (state.playerMana < card.attr.cost) {
+                log("能量不足！请休息。", "system");
+                return;
+            }
+
+            state.isPlayerTurn = false;
+            
+            // 1. Pay Cost
+            state.playerMana -= card.attr.cost;
+            updateUI();
+
+            // 2. Animation
+            const pCardEl = document.getElementById('player-card');
+            pCardEl.classList.add('animate-attack');
+            setTimeout(() => pCardEl.classList.remove('animate-attack'), 300);
+
+            // 3. Deal Damage
+            setTimeout(() => {
+                const damage = card.attr.attack;
+                enemy.hp = Math.max(0, enemy.hp - damage);
+                
+                // Visuals
+                const eCardEl = document.getElementById('active-enemy-card');
+                eCardEl.classList.add('animate-damage');
+                setTimeout(() => eCardEl.classList.remove('animate-damage'), 400);
+                
+                const rect = eCardEl.getBoundingClientRect();
+                showFloatingText(`-`+damage, rect.left + 100, rect.top + 50);
+
+                log(`使用了 ${card.title}，造成 ${damage} 点伤害！`, "player-action");
+                updateUI();
+
+                // Check Victory
+                if (enemy.hp <= 0) {
+                    log(`击败了 ${enemy.title}！获得成就感！`, "victory");
+                    setTimeout(() => {
+                        nextEnemy();
+                    }, 1000);
+                    state.isPlayerTurn = true;
+                } else {
+                    // Enemy Turn
+                    setTimeout(enemyTurn, 1000);
+                }
+            }, 300);
+        }
+
+        function enemyTurn() {
+            const enemy = enemies[state.enemyIndex];
+            const pCard = projects[state.cardIndex];
+            
+            // Calculate damage (reduced by current card defense)
+            let damage = Math.max(0, enemy.attack - Math.floor(pCard.attr.defense / 5)); // Simple defense formula
+            
+            state.playerHp = Math.max(0, state.playerHp - damage);
+            
+            // Visuals
+            const pCardEl = document.getElementById('player-card');
+            pCardEl.classList.add('animate-damage');
+            setTimeout(() => pCardEl.classList.remove('animate-damage'), 400);
+            
+            const rect = pCardEl.getBoundingClientRect();
+            showFloatingText(`-`+damage, rect.left + 100, rect.top + 50, 'purple');
+
+            log(`${enemy.title} 发动攻击！你受到了 ${damage} 点伤害。`, "enemy-action");
+            updateUI();
+
+            if (state.playerHp <= 0) {
+                log("你的意志力耗尽了... 请刷新重试。", "enemy-action");
+                location.reload();
+            } else {
+                state.isPlayerTurn = true;
+            }
+        }
+
+        function restAction() {
+            if (!state.isPlayerTurn) return;
+            state.playerMana = Math.min(state.maxPlayerMana, state.playerMana + 5);
+            state.playerHp = Math.min(state.maxPlayerHp, state.playerHp + 10);
+            log("你喝了一杯咖啡，回复了生命和能量。", "system");
+            updateUI();
+            
+            state.isPlayerTurn = false;
+            setTimeout(enemyTurn, 800);
+        }
+
+        function nextEnemy() {
+            state.enemyIndex = (state.enemyIndex + 1) % enemies.length;
+            // Reset Enemy HP logic if needed, here we keep persistent enemies or reset? 
+            // Let's reset the new enemy HP for gameplay loop
+            enemies[state.enemyIndex].hp = enemies[state.enemyIndex].maxHp; 
+            
+            renderEnemyCard();
+            updateUI();
+            log(`新的挑战出现了：${enemies[state.enemyIndex].title}`, "system");
+            state.isPlayerTurn = true;
+        }
+
+        // --- INPUT HANDLING ---
+
+        el.nextBtn.addEventListener('click', () => {
+            if(state.playerMana<=0){return;}
+            state.cardIndex = (state.cardIndex + 1) % projects.length;
+            state.playerMana = Math.min(state.maxPlayerMana, state.playerMana - 1); // Regen mana on switch
+            renderPlayerCard(state.cardIndex);
+            updateUI();
+        });
+
+        el.prevBtn.addEventListener('click', () => {
+            if(state.playerMana<=0){return;}
+            state.cardIndex = (state.cardIndex - 1 + projects.length) % projects.length;
+            state.playerMana = Math.min(state.maxPlayerMana, state.playerMana - 1);
+            renderPlayerCard(state.cardIndex);
+            updateUI();
+        });
+
+        // Tilt Effect
+        function bindTiltEffect(card) {
+            if(!card) return;
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = ((y - centerY) / centerY) * -10; 
+                const rotateY = ((x - centerX) / centerX) * 10;
+
+                card.style.transform = `perspective(1000px) rotateX(deg) rotateY(deg) scale(1.02)`;
+                
+                const holo = card.querySelector('.holo-overlay');
+                if(holo) {
+                    holo.style.backgroundPosition = `${x/5 + y/5}%`;
+                    holo.style.opacity = '1';
+                }
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)`;
+                const holo = card.querySelector('.holo-overlay');
+                if(holo) holo.style.opacity = '0';
+            });
+        }
+
+        // --- VISUALS (Particles & Cursor) ---
+        const cursor = document.getElementById('cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            
+            // Enemy hover check
+            const target = e.target.closest('.enemy-card');
+            if (target) cursor.classList.add('enemy-hover');
+            else cursor.classList.remove('enemy-hover');
+            
+            // General hover check
+            if (e.target.closest('.hover-trigger')) cursor.classList.add('hovered');
+            else if (!target) cursor.classList.remove('hovered');
+        });
+
+        // Canvas Particles
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.color = Math.random() > 0.5 ? '#00f3ff' : '#bc13fe';
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.globalAlpha = 0.5; ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 80; i++) particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+                // Link lines
+                particles.forEach(p2 => {
+                    const dx = p.x - p2.x; const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 100) {
+                        ctx.beginPath(); ctx.strokeStyle = 'rgba(100, 100, 255, 0.05)';
+                        ctx.lineWidth = 0.5; ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+                    }
+                });
+            });
+            requestAnimationFrame(animateParticles);
+        }
+
+        // --- Navbar Clock Logic ---
+        function updateSystemTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-GB', { hour12: false }); // 24小时制
+            const timeEl = document.getElementById('sys-time');
+            if(timeEl) timeEl.innerText = timeString;
+        }
+        setInterval(updateSystemTime, 1000);
+        updateSystemTime();
+
+        
+
+        initParticles();
+        animateParticles();
+
+        
+        // --- INIT GAME ---
+        renderPlayerCard(0);
+        renderEnemyCard();
+        updateUI();
+
+    </script>
+</body>
+</html>
