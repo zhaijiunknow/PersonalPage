@@ -494,6 +494,7 @@
         
         if (dist < BLACKHOLE_RADIUS + 20) {
             openArchive();
+            l2d();
         }
     });
 
@@ -2125,7 +2126,11 @@ class PlanetGenerator {
         let gameReq;
         let particlesGame = [];
         let ruleMatrix = {}; 
-        const colors = ['#ff2a2a', '#00ff9d', '#00f3ff', '#ffffff']; 
+        const RED = '#ff2a2a';
+        const GREEN = '#00ff9d';
+        const BLUE = '#00f3ff';
+        const WHITE = '#ffffff';
+        const colors = [RED, GREEN, BLUE, WHITE]; 
         // [新增] 鼠标交互变量
         const mouse = { x: 0, y: 0, active: false };
 
@@ -2157,8 +2162,13 @@ class PlanetGenerator {
                 this.x = x; this.y = y;
                 this.vx = 0; this.vy = 0;
                 this.color = color;
+                
+                this.dead = false; // 死亡标记
+                this.age = 0;      // 蓝色粒子用：年龄
+                this.hp = 100;     // 红色粒子用：生命值 (用于承受蓝色攻击)
             }
         }
+
 
         function randomRules() {
             for (let i = 0; i < colors.length; i++) {
@@ -2209,13 +2219,23 @@ class PlanetGenerator {
         // --- [JS 修改] 核心物理引擎 (包含鼠标交互) ---
         function updateAtoms() {
             for (let i = 0; i < particlesGame.length; i++) {
-                let fx = 0; let fy = 0;
                 const a = particlesGame[i];
+                if (a.dead) continue; // 跳过已死亡粒子
+
+                let fx = 0; let fy = 0;
                 
-                // 1. 粒子之间的相互作用
+                // --- 生命逻辑 ---
+                // 蓝色粒子：随时间自然死亡 (寿命约 600 帧，即 10秒左右)
+                if (a.color === BLUE) {
+                    a.age++;
+                    if (a.age > 600) { a.dead = true; continue; }
+                }
+
+                // --- 交互逻辑 ---
                 for (let j = 0; j < particlesGame.length; j++) {
                     if (i === j) continue;
                     const b = particlesGame[j];
+                    if (b.dead) continue;
                     
                     const g = ruleMatrix[`${a.color}-${b.color}`];
                     let dx = a.x - b.x;
@@ -2223,16 +2243,41 @@ class PlanetGenerator {
                     let d = Math.sqrt(dx * dx + dy * dy);
                     
                     if (d > 0 && d < 100) {
+                        // A. 物理力场
                         let F = 0;
-                        if (d < 20) {
-                            // 最小间距排斥
-                            F = (20 - d) * 0.05; 
+                        if (d < 10) {
+                            // [修改点] 同色斥力：只有相同颜色的粒子才会有强力排斥，避免重叠
+                            // 不同颜色的粒子可以重叠（方便捕食/结合）
+                            if (a.color === b.color) {
+                                F = (10 - d) * 0.1; // 强斥力
+                            } else {
+                                // 异色粒子近距离几乎没有斥力，允许接触
+                                F = 0; 
+                            }
                         } else {
-                            // 规则引力
+                            // 正常规则引力 (远距离)
                             F = (g * FORCE_SCALE) / d;
                         }
                         fx += (F * dx);
                         fy += (F * dy);
+
+                        // B. 捕食与攻击逻辑 (接触判定 d < 10)
+                        if (d < 10) {
+                            // 规则1: 红吃绿
+                            if (a.color === RED && b.color === GREEN) {
+                                b.dead = true; // 绿色瞬间死亡
+                                // 红色由于进食，可能会获得某种增益，这里暂不处理
+                            }
+                            
+                            // 规则2: 蓝打红
+                            if (a.color === BLUE && b.color === RED) {
+                                // 接触时红色持续掉血
+                                b.hp -= 5; 
+                                if (b.hp <= 0) {
+                                    b.dead = true; // 红色血量耗尽死亡
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -2282,6 +2327,11 @@ class PlanetGenerator {
             gameCtx.fillStyle = 'rgba(0, 0, 0, 0.3)'; 
             gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
 
+            // 清理死亡粒子 (过滤掉 dead 为 true 的)
+            // 这是一个简单的优化，防止数组无限膨胀
+            if (epoch % 5 === 0) {
+                particlesGame = particlesGame.filter(p => !p.dead);
+            }
             // 2. 绘制粒子
             for (let i = 0; i < particlesGame.length; i++) {
                 const a = particlesGame[i];
@@ -2294,22 +2344,20 @@ class PlanetGenerator {
             
             updateAtoms();
             
-            // 3. 动态人口控制 (生命循环)
-            // 每隔几帧执行一次人口调整，避免闪烁过快
-            if (epoch % 5 === 0) {
-                const current = particlesGame.length;
-                
-                // 随机决定是“出生”还是“死亡”
-                // 如果数量太少，倾向于出生；太多，倾向于死亡
-                const birthChance = 1 - (current - MIN_ATOMS) / (MAX_ATOMS - MIN_ATOMS);
-                
-                if (Math.random() < birthChance && current < MAX_ATOMS) {
-                    addParticle();
-                } else if (current > MIN_ATOMS) {
-                    removeParticle();
-                }
-                updateCountDisplay();
+            // --- [修改点] 自动生成逻辑 ---
+            // 每 20 帧 尝试生成新生命，维持生态
+            // 如果某颜色太多，则停止生成该颜色，防止爆满
+            if (epoch % 5 === 0 && particlesGame.length < MAX_ATOMS) {
+                const spawnColor = colors[Math.floor(Math.random() * 3)]; // 只生成 红、绿、蓝
+                // 只有当总数小于上限时才生成
+                particlesGame.push(new Atom(
+                    Math.random() * gameCanvas.width,
+                    Math.random() * gameCanvas.height,
+                    spawnColor
+                ));
             }
+            
+            updateCountDisplay();
 
             epoch++;
             if(epoch % 10 === 0) {
@@ -2367,8 +2415,8 @@ class PlanetGenerator {
             }
         }
 
-
-        OML2D.loadOml2d({
+        function l2d(){
+            OML2D.loadOml2d({
             initialStatus:"sleep",
             dockedPosition:"right",
             models: [
@@ -2422,6 +2470,8 @@ class PlanetGenerator {
             
             
         });
+        }
+        
         
 
 </script>
