@@ -4,7 +4,7 @@
     <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
     <title>无限视界</title> 
     <script src="https://cdn.tailwindcss.com"></script> 
-    <script src="https://unpkg.com/oh-my-live2d@latest"></script>
+    <script src="node_modules/oh-my-live2d/dist/index.min.js"></script>
     <link rel="icon" type="image/x-icon" href="favicon.ico"/>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"> 
     <style> 
@@ -315,7 +315,7 @@
             <div class="modal-header">
                 <div class="flex items-center gap-2">
                     <i class="fas fa-dna text-purple-400"></i>
-                    <h2 class="text-xl font-orbitron text-purple-400">PROJECT_GENESIS</h2>
+                    <h2 class="text-xl font-orbitron text-purple-400">粒子模拟</h2>
                 </div>
                 <i class="fas fa-times text-xl close-btn hover-trigger" onclick="stopGame(); closeModal('add')"></i>
             </div>
@@ -2345,9 +2345,9 @@ class PlanetGenerator {
             updateAtoms();
             
             // --- [修改点] 自动生成逻辑 ---
-            // 每 20 帧 尝试生成新生命，维持生态
+            // 尝试生成新生命，维持生态
             // 如果某颜色太多，则停止生成该颜色，防止爆满
-            if (epoch % 5 === 0 && particlesGame.length < MAX_ATOMS) {
+            if (epoch % 2 === 0 && particlesGame.length < MAX_ATOMS) {
                 const spawnColor = colors[Math.floor(Math.random() * 3)]; // 只生成 红、绿、蓝
                 // 只有当总数小于上限时才生成
                 particlesGame.push(new Atom(
