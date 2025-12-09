@@ -1,143 +1,2429 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>无限视界 | 档案库</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;500;700&display=swap');
+<head> 
+    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>无限视界</title> 
+    <script src="https://cdn.tailwindcss.com"></script> 
+    <script src="https://unpkg.com/oh-my-live2d@latest"></script>
+    <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"> 
+    <style> 
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;500;700&family=JetBrains+Mono:wght@400&display=swap');
+    :root {
+        --primary: #00f3ff;
+        --secondary: #bc13fe;
+        --bg-color: #050505;
+    }
+    /* --- 核心修复：彻底隐藏原生鼠标 --- */
+    /* 强制所有元素（包括输入框、按钮、链接）都不显示原生光标 */
+    *, *::before, *::after {
+        cursor: none !important;
+    }
+    body {
+        background-color: var(--bg-color);
+        color: white;
+        font-family: 'Noto Sans SC', sans-serif;
+        overflow: hidden;
+        cursor: none;
+        height: 100vh;
+        width: 100vw;
+        user-select: none;
+    }
 
-        :root {
-            --primary: #00f3ff;
-            --secondary: #bc13fe;
-            --bg-color: #050505;
-            --glass: rgba(10, 15, 20, 0.85);
-        }
+    /* --- 1. 鼠标样式 (沿用) --- */
+    #cursor {
+        position: fixed; top: 0; left: 0; width: 20px; height: 20px;
+        border: 2px solid var(--primary); border-radius: 50%;
+        pointer-events: none; transform: translate(-50%, -50%); z-index: 9999;
+        transition: width 0.2s, height 0.2s, background-color 0.2s, border-color 0.2s; mix-blend-mode: difference;
+    }
+    #cursor.hovered { width: 50px; height: 50px; background-color: rgba(0, 243, 255, 0.2); border-color: var(--secondary); }
+    #cursor.blackhole-hover { width: 80px; height: 80px; border-color: white; background-color: rgba(255,255,255,0.1); mix-blend-mode: normal; }
+    /* 输入状态下的鼠标样式 */
+    #cursor.text-mode { width: 4px; height: 20px; border-radius: 2px; background-color: var(--primary); border: none; mix-blend-mode: normal; }
 
-        body {
-            background-color: var(--bg-color);
-            color: white;
-            font-family: 'Noto Sans SC', sans-serif;
-            overflow: hidden;
-            height: 100vh;
-        }
+    /* --- 2. 背景画布 --- */
+    #galaxy-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
 
-        /* --- UI Components --- */
-        .glass-panel {
-            background: var(--glass);
-            border: 1px solid rgba(0, 243, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
-        }
-        
-        .glass-panel:hover {
-            border-color: rgba(0, 243, 255, 0.5);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
-        }
-
-        
-        /* --- Navbar Specific Styles --- */
-        .nav-link {
-            position: relative;
-            font-family: 'Noto Sans SC', sans-serif;
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: #555;
-            text-decoration: none;
-            padding: 5px 0;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .nav-link .nav-icon {
-            font-size: 0.7rem;
-            opacity: 0;
-            transform: translateX(-5px);
-            transition: all 0.3s;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            color: var(--primary);
-            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
-        }
-
-        .nav-link:hover .nav-icon, .nav-link.active .nav-icon {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 50%;
-            width: 0;
-            height: 2px;
-            background: var(--primary);
-            box-shadow: 0 0 10px var(--primary);
-            transition: all 0.3s;
-            transform: translateX(-50%);
-        }
-
-        .nav-link:hover::after, .nav-link.active::after {
-            width: 100%;
-        }
-
-        .shadow-blue-glow {
-            text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
-        }
-    </style>
-</head>
-<body class="flex flex-col">
-
-    <!-- Top Navigation Bar -->
-    <div>
-        <nav id="system-navbar" class="fixed top-0 left-0 w-full h-14 z-[100] flex items-center justify-between px-6 border-b border-cyan-500/30 bg-[#050505]/90 backdrop-blur-md">
-            <!-- Left: System Status Icon -->
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 group cursor-pointer">
-                    <div class="w-8 h-8 rounded border border-cyan-500/50 flex items-center justify-center bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-all">
-                        <i class="fas fa-fingerprint text-cyan-400 text-sm"></i>
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="font-orbitron text-[10px] text-cyan-400 tracking-widest">SYSTEM_ONLINE</span>
-                        <span class="font-mono text-[9px] text-gray-500">V.2.0.4 stable</span>
-                    </div>
-                </div>
-                <div class="h-4 w-[1px] bg-gray-800 mx-2"></div>
-                <!-- Ping Status -->
-                <div class="flex items-center gap-2 opacity-60">
-                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                    <span class="font-mono text-[10px] text-gray-400">LATENCY: 24ms</span>
-                </div>
-            </div>
-            <!-- Center: Navigation Links -->
-            <div class="hidden md:flex items-center gap-12 absolute left-1/2 transform -translate-x-1/2">
-                <a href="index.html" class="nav-link" data-target="home">
-                    <span class="nav-icon"><i class="fas fa-home"></i></span> 主控台
-                </a>
-                <a href="#" class="nav-link active" data-target="archive">
-                    <span class="nav-icon"><i class="fas fa-box-open"></i></span> 档案库
-                </a>
-                <a href="#" class="nav-link" data-target="settings">
-                    <span class="nav-icon"><i class="fas fa-sliders-h"></i></span> 系统设置
-                </a>
-            </div>
+    /* --- 3. 顶边栏 (沿用，初始隐藏) --- */
+    #system-navbar {
+        transform: translateY(-100%); transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #system-navbar.visible { transform: translateY(0); }
     
-        </nav>
+    .nav-link {
+        position: relative; font-size: 0.8rem; font-weight: 700; color: #555;
+        text-decoration: none; padding: 5px 0; transition: all 0.3s ease;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .nav-link:hover, .nav-link.active { color: var(--primary); text-shadow: 0 0 8px rgba(0, 243, 255, 0.5); }
+    .shadow-blue-glow { text-shadow: 0 0 10px rgba(0, 243, 255, 0.4); }
+
+    /* --- 4. 初始引导层 (The Lid) --- */
+    #intro-layer {
+        position: absolute; inset: 0; z-index: 10;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        pointer-events: none; /* Let clicks pass to canvas for blackhole */
+        transition: opacity 1s ease;
+    }
+    #intro-layer.hidden { opacity: 0; pointer-events: none; }
+
+    .intro-text {
+        font-family: 'Orbitron'; letter-spacing: 4px; color: rgba(255,255,255,0.7);
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        animation: pulse 3s infinite;
+    }
+    .intro-sub { font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #555; margin-top: 10px; }
+
+    /* --- 5. 星球档案层 (优化横向滚动) --- */
+    #archive-layer {
+            position: absolute; inset: 0; z-index: 5;
+            display: flex; align-items: center; 
+            opacity: 0; pointer-events: none; transform: scale(1.1);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden; /* 防止页面级滚动 */
+        }
+        #archive-layer.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+
+        .planet-scroll-container {
+            display: flex; gap: 80px; padding: 0 50vw 0 10vw; /* 左右留白，方便滚动开始和结束 */
+            overflow-x: auto; 
+            width: 100%; 
+            height: 60vh; /* 限制高度，垂直居中 */
+            align-items: center;
+            
+            /* 隐藏默认滚动条 */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE 10+ */
+            
+            /* 关键：使用 mask 实现两侧淡入淡出效果 */
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+        .planet-scroll-container::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+
+        /* 星球样式 */
+        .planet-wrapper {
+            flex-shrink: 0; /* 防止星球被压缩 */
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+            transition: transform 0.3s; position: relative;
+        }
+        .planet-wrapper:hover { transform: translateY(-10px) scale(1.05); }
+
+        .planet {
+            width: 140px; height: 140px;
+            border-radius: 50%;
+            position: relative;
+            /* 移除 background: radial-gradient... */
+            background: black; /* 宇宙背景 */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); /* 基础阴影 */
+            transition: all 0.5s ease;
+            overflow: hidden; /* 确保 Canvas 不溢出圆角 */
+        }
+        .planet canvas {
+            width: 100%; height: 100%;
+            display: block;
+        }
+
+        /* 悬停效果调整 */
+        .planet:hover { 
+            box-shadow: 0 0 50px var(--glow-color); 
+            transform: scale(1.05); /* 轻微放大 */
+        }
+        .planet::after { display: none; }
+        .planet:hover::after { opacity: 1; transform: scale(1.2); border-color: var(--glow-color); }
+
+        .orbit-ring {
+            position: absolute; width: 220px; height: 80px;
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg);
+            pointer-events: none; transition: 0.3s;
+        }
+        .planet-wrapper:hover .orbit-ring { border-color: rgba(255,255,255,0.4); transform: translate(-50%, -50%) rotate(0deg); }
+
+        .planet-label {
+            font-family: 'Orbitron'; font-size: 0.9rem; letter-spacing: 1px;
+            text-shadow: 0 2px 4px black; opacity: 0.7; transition: 0.3s;
+            margin-top: 20px;
+        }
+        .planet-wrapper:hover .planet-label { opacity: 1; color: var(--primary); letter-spacing: 2px; }
+
+        /* --- 6. 弹窗 (滚动条美化) --- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            z-index: 100; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .modal-card {
+            background: rgba(15, 20, 30, 0.95); border: 1px solid var(--primary);
+            width: 700px; max-width: 90vw; max-height: 80vh;
+            border-radius: 12px;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.15);
+            transform: scale(0.9); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .modal-overlay.open .modal-card { transform: scale(1); }
+
+        .modal-header {
+            padding: 20px 30px; background: rgba(0, 243, 255, 0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        /* 滚动容器 */
+        .modal-scroll-area { 
+            position: relative; flex: 1; overflow: hidden; display: flex;
+        }
+        /* 隐藏原生滚动条的类 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .modal-body { 
+            padding: 30px; 
+            overflow-y: auto; 
+            color: #ccc; font-family: 'JetBrains Mono'; line-height: 1.8; font-size: 0.9rem;
+        }
+
+        /* --- 核心修复：自定义滚动条样式 --- */
+        .modal-body::-webkit-scrollbar { width: 6px; }
+        .modal-body::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        .modal-body::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        .modal-body::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+        .close-btn { transition: 0.2s; }
+        .close-btn:hover { color: var(--danger); transform: rotate(90deg); }
+
+        /* --- [CSS 新增] 创世纪游戏样式 --- */
+        #game-container {
+            position: relative;
+            width: 100%; height: 100%;
+            background: #000;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        #genesis-canvas {
+            display: block; width: 100%; height: 100%;
+        }
+
+        .game-hud {
+            position: absolute; pointer-events: none;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        
+        .hud-top-left { top: 20px; left: 20px; }
+        .hud-bottom-right { bottom: 20px; right: 20px; text-align: right; }
+        
+        .hud-text {
+            font-family: 'Orbitron'; font-size: 0.8rem; color: var(--primary);
+            text-shadow: 0 0 5px var(--primary); letter-spacing: 1px;
+        }
+        .hud-sub { font-family: 'JetBrains Mono'; font-size: 0.7rem; color: #666; }
+        
+        .control-panel {
+            position: absolute; bottom: 20px; left: 20px;
+            pointer-events: auto; display: flex; gap: 10px;
+        }
+        
+        .game-btn {
+            background: rgba(0, 243, 255, 0.1); border: 1px solid var(--primary);
+            color: var(--primary); padding: 5px 10px; font-size: 0.7rem; font-family: 'Orbitron';
+            cursor: none; transition: 0.2s;
+        }
+        .game-btn:hover { background: var(--primary); color: black; box-shadow: 0 0 10px var(--primary); }
+
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+</style>
+</head> 
+<body>
+<!-- 1. Galaxy Canvas (The Lid & The Background) -->
+<canvas id="galaxy-canvas"></canvas>
+<div id="cursor"></div>
+
+<!-- 2. Intro Layer (Initial State) -->
+<div id="intro-layer">
+    <h1 class="intro-text text-4xl"></h1>
+    <p class="intro-sub"></p>
+    <p class="text-[10px] text-gray-600 mt-2"></p>
+</div>
+
+<!-- 3. Navbar (Hidden initially) -->
+<nav id="system-navbar" class="fixed top-0 left-0 w-full h-14 z-[50] flex items-center justify-between px-6 border-b border-cyan-500/30 bg-[#050505]/90 backdrop-blur-md">
+    <div class="flex items-center gap-4">
+        <div class="w-8 h-8 rounded border border-cyan-500/50 flex items-center justify-center bg-cyan-500/10">
+            <i class="fas fa-atom text-cyan-400 text-sm"></i>
+        </div>
+        <div class="flex flex-col">
+            <span class="font-orbitron text-[10px] text-cyan-400 tracking-widest">我还在</span>
+            <span class="font-mono text-[9px] text-gray-500">V.1.0.1</span>
+        </div>
+    </div>
+
+    <div class="hidden md:flex items-center gap-12 absolute left-1/2 transform -translate-x-1/2">
+        <a href="index.html" class="nav-link hover-trigger">
+            <i class="fas fa-rocket text-xs"></i> 主控台
+        </a>
+        <span class="nav-link active">
+            <i class="fas fa-globe text-xs"></i> 档案库
+        </span>
+        
+    </div>
+
+    <div class="flex items-center gap-5">
+        <span id="sys-time" class="font-mono text-sm text-gray-300 font-bold tracking-widest shadow-blue-glow">00:00:00</span>
+        <!-- 弹窗按钮：补充内容 -->
+        <button onclick="openModal('add')" class="nav-link hover-trigger group">
+            <i class="fas fa-plus text-xs group-hover:rotate-90 transition-transform"></i>粒子模拟场
+        </button>
     </div>
     
+</nav>
+
+<!-- 4. Planet Archive Layer (Hidden initially) -->
+<div id="archive-layer">
+    <div class="planet-scroll-container" id="planet-container">
+        <!-- Planets Generated by JS -->
+    </div>
+</div>
+
+<!-- 5. Modals -->
+
+<!-- Document View Modal -->
+<div id="view-modal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="flex flex-col">
+                <h2 class="text-xl font-orbitron text-white" id="modal-title">TITLE</h2>
+                <span class="text-xs text-cyan-400 font-mono" id="modal-date">DATE</span>
+            </div>
+            <i class="fas fa-times text-xl close-btn hover-trigger" onclick="closeModal('view')"></i>
+        </div>
+        <div class="modal-body" id="modal-content">
+            <!-- Content injected here -->
+        </div>
+        <div class="p-4 border-t border-white/10 flex justify-end">
+            
+        </div>
+    </div>
+</div>
+
+<!-- 6. Genesis Game Modal (原 Add Modal) -->
+    <div id="add-modal" class="modal-overlay">
+        <div class="modal-card" style="width: 800px; height: 600px;">
+            <div class="modal-header">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-dna text-purple-400"></i>
+                    <h2 class="text-xl font-orbitron text-purple-400">PROJECT_GENESIS</h2>
+                </div>
+                <i class="fas fa-times text-xl close-btn hover-trigger" onclick="stopGame(); closeModal('add')"></i>
+            </div>
+            
+            <!-- 游戏区域 -->
+            <div class="modal-body p-0 overflow-hidden relative" style="flex: 1;">
+                <div id="game-container">
+                    <canvas id="genesis-canvas"></canvas>
+                    
+                    <!-- 游戏 HUD -->
+                    <div class="game-hud hud-top-left">
+                        <div class="hud-text">模拟运行中...</div>
+                        <div class="hud-sub">纪元: <span id="sim-epoch">0</span></div>
+                        <div class="hud-sub">实体: <span id="sim-count">0</span></div>
+                    </div>
+
+                    <div class="game-hud hud-bottom-right">
+                        <div class="hud-text" id="sim-status">稳定</div>
+                        <div class="hud-sub">熵水平</div>
+                    </div>
+
+                    <!-- 控制按钮 -->
+                    <div class="control-panel">
+                        <button class="game-btn hover-trigger" onclick="resetSimulation()">重启</button>
+                        <button class="game-btn hover-trigger" onclick="mutateRules()">变更规则</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-2 border-t border-white/10 bg-black/40 flex justify-between items-center px-4">
+                <span class="text-[10px] text-gray-500 font-mono">> 观察人工智能生命的自主演化。红色=捕食者，绿色=资源，蓝色=守护者。</span>
+                <span class="text-[10px] text-purple-400 font-mono animate-pulse">● 记录数据...</span>
+            </div>
+        </div>
+    </div>
+<script>
+    // --- 1. Canvas Galaxy Engine ---
+    const canvas = document.getElementById('galaxy-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height, centerX, centerY;
+    
+    let stars = [];
+    let isOpened = false; // State: Closed (Intro) or Opened (Archive)
+    let animationFrame;
+
+    // Configuration
+    const STAR_COUNT = 800;
+    const BLACKHOLE_RADIUS = 60; 
+
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        centerX = width / 2;
+        centerY = height / 2;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Star {
+        constructor() {
+            this.reset();
+            // Pre-warm position to form a disk
+            this.angle = Math.random() * Math.PI * 2;
+            this.radius = Math.random() * (Math.max(width, height) / 1.5) + BLACKHOLE_RADIUS;
+        }
+
+        reset() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.z = Math.random() * 2; // Depth
+            this.size = Math.random() * 1.5;
+            this.angle = Math.random() * Math.PI * 2;
+            this.radius = Math.random() * (Math.max(width, height) / 1.5) + BLACKHOLE_RADIUS;
+            this.speed = (Math.random() * 0.002) + 0.0005;
+            this.color = Math.random() > 0.7 ? '#bc13fe' : '#00f3ff';
+        }
+
+        update() {
+            if (!isOpened) {
+                // Spiral Mode (Intro)
+                this.angle += this.speed;
+                this.radius -= 0.1; // Slowly spiral in
+                
+                if (this.radius < BLACKHOLE_RADIUS) {
+                    this.radius = Math.max(width, height) / 1.5; // Reset to outer rim
+                }
+
+                this.x = centerX + Math.cos(this.angle) * this.radius;
+                this.y = centerY + Math.sin(this.angle) * this.radius * 0.4; // 0.4 makes it an oval/disk
+            } else {
+                // Warp/Background Mode (Opened)
+                // Move stars outward or just drift
+                this.x += (this.x - centerX) * 0.005;
+                this.y += (this.y - centerY) * 0.005;
+                
+                // Reset if out of bounds
+                if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                }
+            }
+        }
+
+        draw() {
+            const alpha = isOpened ? 0.3 : (this.radius - BLACKHOLE_RADIUS) / 200; // Fade near blackhole
+            ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function initStars() {
+        stars = [];
+        for(let i=0; i<STAR_COUNT; i++) stars.push(new Star());
+    }
+
+    function render() {
+        // Trail effect
+        ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw Blackhole (Intro Only)
+        if (!isOpened) {
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, BLACKHOLE_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = 'black';
+            ctx.fill();
+            
+            // Accretion Disk Glow
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'white';
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        stars.forEach(star => {
+            star.update();
+            star.draw();
+        });
+
+        animationFrame = requestAnimationFrame(render);
+    }
+
+    initStars();
+    render();
+
+    // --- 2. Interaction Logic (The "Opening") ---
+    
+    function openArchive() {
+        if(isOpened) return;
+        isOpened = true;
+
+        // 1. UI Transitions
+        document.getElementById('intro-layer').classList.add('hidden');
+        
+        // 2. Warp Effect Logic (Speed up stars momentarily - simulated by update logic change)
+        
+        setTimeout(() => {
+            document.getElementById('system-navbar').classList.add('visible');
+            document.getElementById('archive-layer').classList.add('visible');
+        }, 800);
+    }
+
+    // Blackhole Click Detection
+    canvas.addEventListener('click', (e) => {
+        if(isOpened) return;
+        const dx = e.clientX - centerX;
+        const dy = e.clientY - centerY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist < BLACKHOLE_RADIUS + 20) {
+            openArchive();
+        }
+    });
+
+    // --- 3. Archive Data & Rendering (Planets) ---
+// --- [JS 新增] 程序化星球生成器 ---
+class PlanetGenerator {
+            constructor() {
+                this.palettes = [
+                    { name: 'Earth', water: '#2a5b8c', land: ['#4a7f50', '#3a6a40', '#9a8f6d'], cloud: 'rgba(255,255,255,0.5)', atmosphere: '#4facfe' },
+                    { name: 'Mars', water: '#8d3e3e', land: ['#ac5b4e', '#d57d6e', '#793222'], cloud: 'rgba(200,150,150,0.3)', atmosphere: '#ff5e62' },
+                    { name: 'Ice', water: '#b1d4ff', land: ['#d2f9ff', '#f0e3fc', '#ffffff'], cloud: 'rgba(255,255,255,0.7)', atmosphere: '#c2e9fb' },
+                    { name: 'Gas', water: '#4b2075', land: ['#85a7ee', '#6d4c92', '#220033'], cloud: 'rgba(100,255,218,0.2)', atmosphere: '#7597de' },
+                    { name: 'Toxic', water: '#1f4037', land: ['#305a63', '#3c7384', '#00ffaa'], cloud: 'rgba(50,255,50,0.3)', atmosphere: '#00ff9d' },
+                    { name: 'Lava', water: '#430b6d', land: ['#ec6343', '#ff2854', '#ffc1a9'], cloud: 'rgba(255,100,50,0.4)', atmosphere: '#ff0844' }
+                ];
+            }
+
+            // 生成随机数
+            rand(min, max) { return Math.random() * (max - min) + min; }
+
+            // 绘制单个星球
+            draw(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+                const cx = w / 2;
+                const cy = h / 2;
+                const r = w / 2;
+
+                // 1. 随机选择色板
+                const palette = this.palettes[Math.floor(Math.random() * this.palettes.length)];
+                
+                ctx.clearRect(0, 0, w, h);
+
+                // --- 2. 绘制基础球体 (Base Sphere) ---
+                // 核心修改：边缘不再是纯黑 (#000)，改为半透明黑，让颜色透出来
+                const grad = ctx.createRadialGradient(cx - r/3, cy - r/3, 0, cx, cy, r);
+                grad.addColorStop(0, palette.water);
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0.4)'); // 以前是 #000
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 剪切区域
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.clip();
+
+                // --- 3. 绘制地貌 (Landmasses) ---
+                const landCount = Math.floor(this.rand(10, 25));
+                for(let i=0; i<landCount; i++) {
+                    ctx.fillStyle = palette.land[Math.floor(Math.random() * palette.land.length)];
+                    ctx.beginPath();
+                    const lx = this.rand(0, w);
+                    const ly = this.rand(0, h);
+                    const lr = this.rand(10, 60); 
+                    ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // --- 4. 绘制云层 (Clouds) ---
+                // 增加云层亮度和混合模式，使其看起来更像发光的大气
+                ctx.globalCompositeOperation = 'screen'; // 让云层叠加变亮
+                const cloudCount = Math.floor(this.rand(5, 12));
+                ctx.fillStyle = palette.cloud;
+                for(let i=0; i<cloudCount; i++) {
+                    ctx.beginPath();
+                    const cW = this.rand(20, w);
+                    const cH = this.rand(5, 15);
+                    const cX = this.rand(0, w);
+                    const cY = this.rand(0, h);
+                    ctx.ellipse(cX, cY, cW, cH, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalCompositeOperation = 'source-over'; // 恢复正常混合模式
+                ctx.restore(); // 取消剪切
+
+                // --- 5. 绘制光照与阴影 (Lighting) ---
+                // 核心修改：大幅减弱阴影浓度，增加通透感
+                const shadowGrad = ctx.createRadialGradient(cx - r/2.5, cy - r/2.5, r/3, cx, cy, r);
+                shadowGrad.addColorStop(0, 'transparent');
+                shadowGrad.addColorStop(0.7, 'rgba(0,0,0,0.1)'); // 阴影开始得更晚，且更淡
+                shadowGrad.addColorStop(1, 'rgba(0,0,0,0.7)');   // 边缘阴影也不要全黑
+                
+                ctx.fillStyle = shadowGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fill();
+
+                // --- 6. 高光 (Highlight) ---
+                // 增强高光，模拟大气层反光
+                const highlightGrad = ctx.createRadialGradient(cx - r/3, cy - r/3, 0, cx - r/3, cy - r/3, r/2);
+                highlightGrad.addColorStop(0, 'rgba(255,255,255,0.4)'); // 更亮的核心
+                highlightGrad.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = highlightGrad;
+                ctx.beginPath();
+                ctx.arc(cx - r/3, cy - r/3, r/2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 边缘大气辉光 (Inner Rim Light)
+                ctx.strokeStyle = palette.atmosphere;
+                ctx.lineWidth = 4;
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r - 2, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+
+                return palette.atmosphere; 
+            }
+        }
+
+    const projects = [
+        { 
+            title: "晚安，船长", 
+            color: "radial-gradient(circle at 30% 30%, #4facfe, #00f2fe)", 
+            glow: "#00f3ff",
+            date: "2025-12-17",
+            desc: `
+                <p><b>第10天</b></p>
+                该死…我们离那个黑洞越来越近了。再这样下去，整船人都得为我陪葬。必须想出办法…还能有什么办法？
+                <p><b>第11天</b></p>
+                最坏的消息：主燃料已不足以让飞船挣脱引力。但…或许还够让逃生舱弹射出去。该死。
+                <p><b第12天</b></p>
+                没时间争论了。我宣布启动逃生程序。本以为会为名额争夺——没想到这群混蛋，竟然在互相推让活下去的机会。
+                <p><b>第13天</b></p>
+                <p>埃里克，我们的智囊；还有艾希，她才十九岁，人生还没真正开始…就让他们俩走吧。</p>
+                <p>这是我最后一次写日志。我会命令他们在今日内离舰。奇怪的是，当决定落下，肩上的重量仿佛忽然消失了。埃里克会带上这本日志，连同我们已完成的70%勘探数据——远超任务指标——带回祖国。</p>
+                <p>是我把船引到了这条绝路上。功绩与罪责，祝福与遗憾，都留在这里吧。</p>
+                <p>晚安。</p>
+                <p><b>第13天</b></p>
+                <p>是我…艾希在写。船长让我和埃里克上逃生舱的时候，我没有哭，甚至没反应过来。</p>
+                <p>现在舱门关闭了，主船像一颗渐渐暗下去的星星。我不敢相信…他们把活着的机会推给了我。我凭什么？</p>
+                <p>埃里克说，写日志不用介绍自己。可我不知道该写什么。我的手在抖。外面那个黑洞…它好安静，又好可怕。</p>
+                <p>晚安，船长。晚安，大家。对不起。</p>
+                <p><b>第15天</b></p>
+                主船下坠的速度…是不是变慢了？埃里克一直在看数据，我不敢问。也许还有希望…也许…
+                <p><b>第17天</b></p>
+                <p>埃里克终于开口了。他说，速度减慢不是好事…那代表黑洞的引力已经开始拉扯船体，时间对他们来说…已经几乎停止了。</p>
+                <p>我哭不出来。只觉得心里有什么东西塌陷了下去。</p>
+                <p><b>第18天</b></p>
+                <p>主船停在了黑洞边缘，像一枚标本，像一道墓碑。光芒缠绕着它，仿佛凝固的挽歌。光从那里扭曲逃逸，使它看起来永恒地定格在了最后一秒。</p>
+                <p>埃里克轻轻合上数据板，说，<b>他们已经不在那儿了</b>。</p>
+                <p>他们在哪儿？</p>
+                <p>他没有回答。</p>
+                <p>晚安，探险者38号。晚安，把我留下的你们。</p>
+            `
+        },
+        { 
+            title: "星球种子", 
+            color: "radial-gradient(circle at 30% 30%, #f093fb, #f5576c)", 
+            glow: "#ff00ff",
+            date: "2025-06-10",
+            desc: `
+            <p>	20xx年，我的朋友，x，我明明记得有他这号人，可偏偏忘记了他的名字和他的样子，我问遍了所有他的熟人，答案是一样的。	</p>
+<p>	 	</p>
+<p>	我还记得我是谁。	</p>
+<p>	 	</p>
+<p>	报告纸的纤维在指尖下粗糙得过分。	</p>
+<p>	 	</p>
+<p>	我坐在办公椅上，盯着面前那份《“星球种子”探索项目第一阶段人员贡献评估表》。空调发出平稳的低鸣，实验室恒温恒湿，一切都符合最高标准的工作环境规范。可我却觉得冷，一种从骨髓深处渗出来的冷。	</p>
+<p>	 	</p>
+<p>	表格已经填了大半。李维的量子场论分析、陈博士的材料学突破、刘的遥测算法优化……每一个名字后面都跟着详实的贡献描述和评分。这些都是容易的，客观的，像整理实验数据一样清晰。	</p>
+<p>	 	</p>
+<p>	然后我看到了那个代号：X。	</p>
+<p>	 	</p>
+<p>	光标在那个栏目闪烁，已经闪烁了十七分钟——我数过。我的手指悬在键盘上方，微微颤抖。不是疲劳，不是帕金森早期症状，是一种更可怕的东西：空无。	</p>
+<p>	 	</p>
+<p>	我知道X是谁。我必须知道。他是这个项目的联合发起人之一，是外星生物形态学的首席专家，是我在密大读博时的同学，是我认识了……多少年了？十五年？二十年？我们一起在实验室熬过通宵，一起在会议间隙溜出去抽烟，一起讨论过那些疯狂到不敢写在论文里的假设。	</p>
+<p>	 	</p>
+<p>	我记得他的笑声——低沉，有点沙哑，总是在说完一句特别冷的笑话后响起。我记得他思考时习惯性转笔的动作，那支万宝龙钢笔在他指间翻转，像某种机械蝴蝶。我记得去年我妻子去世时，他是唯一一个没对我说“节哀顺变”，而是直接开车到我家，带了两瓶威士忌，说“今晚我们喝酒，明天我们再处理那些该死的表格”。	</p>
+<p>	 	</p>
+<p>	我记得所有这些碎片，所有这些“关于他的事实”。	</p>
+<p>	 	</p>
+<p>	但我记不起他的脸。	</p>
+<p>	 	</p>
+<p>	不是模糊，不是“想不起来”，而是一种诡异的、黑洞般的缺失。当我试图在脑海中勾勒他的面容时，出现的是一个形状不确定的阴影，边缘模糊，像隔着毛玻璃看一个正在蒸发的人。眼睛是什么颜色？鼻子是高是塌？有没有留胡子？这些最基本的面部特征信息消失了，仿佛从未存在过。	</p>
+<p>	 	</p>
+<p>	更可怕的是，他的名字。	</p>
+<p>	 	</p>
+<p>	不是代号X，是他真正的名字。三个字？两个字？英文名？中文名？我甚至想不起他名字的长度。记忆里有一个空位，一个被精心擦除的空白，但擦除得如此彻底，连“这里曾有过什么”的痕迹都不剩。	</p>
+<p>	 	</p>
+<p>	我的呼吸开始变快。汗水从后颈渗出，滑进衬衫领口。	</p>
+<p>	 	</p>
+<p>	这不正常。这不可能是单纯的遗忘。五十三岁的大脑还不至于如此背叛自己，尤其不可能是对一个朝夕相处十五年以上的同事、朋友的全面遗忘。	</p>
+<p>	 	</p>
+<p>	我站起身，动作太大，椅子向后滑去，撞在文件柜上发出闷响。我需要验证。现在就需要。	</p>
+<p>	 	</p>
+<p>	走廊的光线惨白，照在消音地板上反射出冰冷的光泽。我几乎是小跑着来到隔壁的实验室。透过观察窗，我看到李维正站在光谱分析仪前，眼镜滑到鼻尖，皱着眉头盯着屏幕上滚动的数据。	</p>
+<p>	 	</p>
+<p>	我推门进去，尽量让声音听起来正常：“李维，打扰一下。”	</p>
+<p>	 	</p>
+<p>	他抬头，推了推眼镜，露出一贯的温和表情：“赵工？怎么了？”	</p>
+<p>	 	</p>
+<p>	赵工。我的姓。至少我还记得自己的名字。	</p>
+<p>	 	</p>
+<p>	“关于X上次会议提出的那个模型，”我说，努力让每个字都平稳，“关于种子外壳能量阻尼的量子隧穿效应解释——你手边有他当时分享的原始数据吗？我需要核对一些参数。”	</p>
+<p>	 	</p>
+<p>	我说得很流畅，甚至故意用了几个专业术语，以显得这只是一个普通的、技术性的询问。	</p>
+<p>	 	</p>
+<p>	李维的表情凝固了一瞬。	</p>
+<p>	 	</p>
+<p>	不是惊讶，不是困惑，而是一种……搜索。就像电脑在读取损坏文件时的延迟。他的眼睛看向我左肩后方某处虚空，眉头微皱，嘴唇无声地动了动。	</p>
+<p>	 	</p>
+<p>	“X……的模型？”他终于说，声音里带着一种谨慎的试探性，“您是指……哪次会议？”	</p>
+<p>	 	</p>
+<p>	“上周二的跨部门研讨会。他做了四十分钟的专题报告。”我的心脏开始加速跳动，“关于种子外壳对高能粒子的非经典吸收机制。”	</p>
+<p>	 	</p>
+<p>	李维的眉头皱得更深了。他摘下眼镜，用衣角擦拭镜片——这是他思考时的习惯动作。	</p>
+<p>	 	</p>
+<p>	“抱歉，赵工，”他重新戴上眼镜，眼神恢复了专业性的清澈，但那份困惑并未完全消散，“我确实记得那个模型，很精彩的推导，将量子生物学和凝聚态物理结合起来……但您说是X提出的？我怎么记得……是理论物理组王主任的团队做的初步工作？”	</p>
+<p>	 	</p>
+<p>	谎言。或者说，不是谎言，而是被篡改的记忆。	</p>
+<p>	 	</p>
+<p>	“不，是X，”我坚持道，声音比自己预想的更尖锐，“他用了整整三个月完善那个模型，你还和我讨论过其中关于分形维度的假设——”	</p>
+<p>	 	</p>
+<p>	“分形维度……”李维重复道，然后摇了摇头，露出歉意的笑容，“赵工，您是不是太累了？最近大家都压力很大。您说的那个模型，我也参与了部分验证工作，确实是王主任团队主导的。也许X提供了一些……外围建议？”	</p>
+<p>	 	</p>
+<p>	他说得很客气，但眼神里已经有了关切——那种对一个可能因为过度工作而产生记忆混淆的老同事的关切。	</p>
+<p>	 	</p>
+<p>	我后退一步。“抱歉，可能我记混了。”	</p>
+<p>	 	</p>
+<p>	“需要咖啡吗？”李维问，“休息室有新到的哥伦比亚豆子。”	</p>
+<p>	 	</p>
+<p>	“不用了，谢谢。”	</p>
+<p>	 	</p>
+<p>	我离开他的实验室，门在身后轻轻合上。	</p>
+<p>	 	</p>
+<p>	接下来的一个小时，我像一个偏执狂一样，在研究所里寻找关于X的痕迹。	</p>
+<p>	 	</p>
+<p>	我先去了人事部。档案管理员小张是个活泼的姑娘，扎着高高的马尾辫。“X博士的档案？当然有，但您知道的，他的保密级别很高，需要副主任以上权限才能调阅完整版。”她轻快地说，手指在键盘上敲击。	</p>
+<p>	 	</p>
+<p>	屏幕亮了。一份简略的档案页面。照片栏是空白的——不是黑框，不是“暂无照片”，就是一片纯粹的、毫无提示的空白。姓名栏只有代号：X。学历：保密。过往项目：保密。当前职务：星球种子项目首席外星生物形态学家。	</p>
+<p>	 	</p>
+<p>	“只有这些？”我问。	</p>
+<p>	 	</p>
+<p>	“只有这些，”小张点头，“高层直接录入的，我们只有查看权限，不能修改。有什么问题吗，赵工？”	</p>
+<p>	 	</p>
+<p>	“他长什么样？”我突兀地问。	</p>
+<p>	 	</p>
+<p>	小张愣了一下，然后笑起来：“赵工，您开玩笑吧？我这种级别哪见过X博士本人。听说他从不拍照，也不参加非必要的公开会议。神秘得很呢。”她压低声音，“大家都说，他是那种真正的天才，怪癖一点很正常。”	</p>
+<p>	 	</p>
+<p>	不拍照。从不参加公开会议。这些听起来很合理，完美解释了为什么一个首席科学家的形象如此模糊。	</p>
+<p>	 	</p>
+<p>	但我知道这不是真的。X讨厌拍照是真的，但项目组的集体照他躲不过。就在种子坠落前一个月，我们还在主楼前拍过合影，庆祝第三阶段资金到位。我清楚地记得他站在我左边，手搭在我肩上，对着镜头做了个鬼脸——	</p>
+<p>	 	</p>
+<p>	那张照片在哪？	</p>
+<p>	 	</p>
+<p>	我冲回自己的办公室，开始翻找电子相册。项目文件夹、私人文件夹、云端备份……我找到了那张合影。二十七个人，站在研究所主楼的台阶上。我站在中间偏右的位置。我左边是……李维。	</p>
+<p>	 	</p>
+<p>	李维站在我左边，手插在白大褂口袋里，对着镜头微笑。	</p>
+<p>	 	</p>
+<p>	可记忆告诉我，X应该在那里。李维应该站在我的右边。	</p>
+<p>	 	</p>
+<p>	我又看了看照片。李维确实在我左边。而我右边是材料组的陈博士。	</p>
+<p>	 	</p>
+<p>	冷汗浸透了我的衬衫。	</p>
+<p>	 	</p>
+<p>	我继续寻找。邮件记录。我和X有大量的邮件往来，讨论数据，争论假设，偶尔穿插几句私人的、无关工作的闲聊。搜索“X”的邮件。结果：327封。我点开最新的一封，时间是三个月前，主题是“关于核心探测器的谐振频率优化”。	</p>
+<p>	 	</p>
+<p>	发件人：X。	</p>
+<p>	 	</p>
+<p>	收件人：我。	</p>
+<p>	 	</p>
+<p>	正文是技术讨论，详细列出了三种可能的频率调制方案。结尾处，他写了一句：“老地方，八点，带酒。”	</p>
+<p>	 	</p>
+<p>	老地方。我们常去的那个小酒吧，离研究所两条街，威士忌选择不错，座位之间有足够高的隔板，适合说些不该在实验室说的话。	</p>
+<p>	 	</p>
+<p>	我回复了那封邮件，只有一个字：“妥。”	</p>
+<p>	 	</p>
+<p>	这一切都存在。邮件存在，技术讨论存在，甚至那个“老地方”的约定也存在。但当我阅读这些邮件时，感觉却异常诡异——就像在读别人写的信。那些文字的风格、用词习惯、甚至玩笑的方式，都像X，却又陌生得可怕。更诡异的是，邮件里的X，从不使用任何表情符号，从不谈论工作外的任何事，从不提及具体的人名或地点（“老地方”已经是极限）。	</p>
+<p>	 	</p>
+<p>	就像一封封由AI生成的信，完美模仿了某种模式，却抽离了所有温度。	</p>
+<p>	 	</p>
+<p>	我站起身，走到窗边。外面是研究所的中央庭院，几棵银杏树已经开始泛黄。已经是秋天了。种子是在春末坠落的，X是在夏天进入核心的，而现在……时间过去了多久？记忆里有断层，就像一部被剪掉关键帧的电影。	</p>
+<p>	 	</p>
+<p>	我需要更高的权限。我需要看到更多。	</p>
+<p>	 	</p>
+<p>	我拿起内部电话，拨通了项目总负责人郑将军的直线。电话响了三声后被接起。	</p>
+<p>	 	</p>
+<p>	“赵工？”郑将军的声音永远平稳，带着军人的简洁。	</p>
+<p>	 	</p>
+<p>	“将军，我需要调阅X的全部档案，包括他的原始身份信息和所有参与项目的详细记录。”我直接说，没有寒暄。	</p>
+<p>	 	</p>
+<p>	电话那头沉默了几秒。“理由？”	</p>
+<p>	 	</p>
+<p>	“我的记忆出现问题。”我决定说实话，至少部分实话，“关于X的许多细节……正在变得模糊。我需要确认一些事实，为了项目，也为了我自己的精神状态评估。”	</p>
+<p>	 	</p>
+<p>	更长的沉默。我能听到电话那头轻微的呼吸声。	</p>
+<p>	 	</p>
+<p>	“赵工，”郑将军终于开口，声音里有一种罕见的、近乎温和的东西，“我知道最近压力很大。X的……损失，对我们所有人都是打击。尤其是你，你和他合作最密切。”	</p>
+<p>	 	</p>
+<p>	“所以您记得他。”我抓紧话筒。	</p>
+<p>	 	</p>
+<p>	“我当然记得。”郑将军说，“一位杰出的科学家，做出了不可替代的贡献。他的牺牲是项目的重大损失。”	</p>
+<p>	 	</p>
+<p>	“他长什么样？”我又问出那个问题，像个固执的孩子。	</p>
+<p>	 	</p>
+<p>	这一次，沉默长得令人窒息。	</p>
+<p>	 	</p>
+<p>	“赵工，”郑将军的声音变得严肃，“我认为你需要休息。我已经通知医疗组，他们会给你做一次全面的心理评估。现在，请放下手头所有工作，去医疗中心报到。这是命令。”	</p>
+<p>	 	</p>
+<p>	“可是——”	</p>
+<p>	 	</p>
+<p>	“这是命令。”他重复，然后挂断了电话。	</p>
+<p>	 	</p>
+<p>	我听着忙音，缓缓放下话筒。窗外，一辆黑色的轿车驶入庭院，停在主楼门前。两个穿着白大褂的人下车，朝我所在的这栋楼走来。	</p>
+<p>	 	</p>
+<p>	医疗组。来得真快。	</p>
+<p>	 	</p>
+<p>	我坐回椅子上，闭上眼睛。黑暗里，我试图拼凑。X的脸，X的声音，X的习惯动作，X说过的话……碎片，全是碎片，而且每一片都在融化，像握在手里的雪。	</p>
+<p>	 	</p>
+<p>	但我记得最后一件事，最清晰的一件事，清晰到每一个细节都刻在记忆里，像用刀刻在骨头上：	</p>
+<p>	 	</p>
+<p>	是他，主动走进了种子核心的那团光。	</p>
+<p>	 	</p>
+<p>	然后他消失了。不是死亡，不是传送，是存在本身的擦除。	</p>
+<p>	 	</p>
+<p>	而我现在，坐在这里，感受着记忆被一点点蛀空。	</p>
+<p>	 	</p>
+<p>	这不是自然遗忘。	</p>
+<p>	 	</p>
+<p>	这是侵蚀。	</p>
+<p>	 	</p>
+<p>	我睁开眼，看向自己的手。手背的皮肤正常，静脉微微凸起，几处老年斑，一道多年前实验事故留下的浅疤。一切如常。	</p>
+<p>	 	</p>
+<p>	但当我凝视那皮肤，凝视得足够久时，有那么一瞬间——也许只是光影的把戏，也许是我过度紧张的神经产生的幻觉——我觉得皮肤下似乎有东西在缓慢移动，极其细微的、金属质感的纹路，像叶脉，像根须，像某种正在生长的图案。	</p>
+<p>	 	</p>
+<p>	电话响了。	</p>
+<p>	 	</p>
+<p>	我接起来。	</p>
+<p>	 	</p>
+<p>	“赵工，我们是医疗中心的，已经到您办公室门口了。”一个平静的女声说。	</p>
+<p>	 	</p>
+<p>	“我这就来。”我说。	</p>
+<p>	 	</p>
+<p>	我挂断电话，最后看了一眼电脑屏幕上那份未完成的评估表。光标还在“X”那一栏闪烁。	</p>
+<p>	 	</p>
+<p>	我抬起手，敲下两个字：空缺。	</p>
+<p>	 	</p>
+<p>	然后我保存文档，关闭电脑，起身走向门口。	</p>
+<p>	 	</p>
+<p>	门外的走廊里，两个医疗人员安静地等着。他们穿着洁白的制服，笑容专业而疏离。	</p>
+<p>	 	</p>
+<p>	“这边请，赵工。”其中一人说。	</p>
+<p>	 	</p>
+<p>	我跟他们走。脚步声在长廊里回荡，规律的，沉闷的。	</p>
+<p>	 	</p>
+<p>	经过一面装饰用的金属墙时，我瞥了一眼自己的倒影。一个五十三岁的男人，头发花白，面容疲惫，眼神里有一种我自己都陌生的空洞。	</p>
+<p>	 	</p>
+<p>	倒影里，我的脸似乎扭曲了一瞬，皮肤下有什么东西在游走。	</p>
+<p>	 	</p>
+<p>	我眨了眨眼。	</p>
+<p>	 	</p>
+<p>	倒影恢复正常。	</p>
+<p>	 	</p>
+<p>	只是光线问题，我告诉自己。只是太累了。	</p>
+<p>	 	</p>
+<p>	但我知道不是。	</p>
+<p>	 	</p>
+<p>	种子已经种下了。而它的根须，正在我们所有人的记忆里生长。	</p>
+<p>	 	</p>
+<p>	第一步，是忘记那个播种的人。	</p>
+<p>	 	</p>
+<p>	第二步呢？	</p>
+<p>	 	</p>
+<p>	我不敢想。	</p>
+<p>	 	</p>
+<p>	电梯门打开，医疗人员示意我先进去。我踏进那个狭小的金属空间，转身面对正在关闭的门。在门缝彻底合拢前，我最后看了一眼我办公室的方向。	</p>
+<p>	 	</p>
+<p>	门关上了。	</p>
+<p>	 	</p>
+<p>	电梯开始下降。	</p>
+<p>	 	</p>
+<p>	失重感包裹着我，像一次缓慢的坠落。	</p>
+<p>	 	</p>
+<p>	而我知道，这坠落，才刚刚开始。	</p>
+<p>	 	</p>
+<p>	医疗中心的房间白得刺眼。	</p>
+<p>	 	</p>
+<p>	这不是普通的医院病房，而是研究所内部最高保密级别的医疗观察室。墙壁是柔软的吸音材料，没有窗户，唯一的门是厚重的金属密封门，内侧没有把手。空气里弥漫着微弱的臭氧味和另一种更隐秘的气味——像是旧书页和金属混合的味道。	</p>
+<p>	 	</p>
+<p>	“赵明远博士，请放轻松。”	</p>
+<p>	 	</p>
+<p>	说话的是林医生，医疗中心的主管，一个四十出头、梳着严谨发髻的女人。她站在床边，手里的平板电脑发着冷光。我已经在这里待了多久？三个小时？五个小时？时间在无窗的房间里失去了尺度感。	</p>
+<p>	 	</p>
+<p>	“我需要一个解释，林医生。”我试图让自己的声音听起来平静，“我被强制带到这里，接受了一系列……不必要的检查。脑部CT、核磁共振、脑电图、血液分析，甚至还有视网膜扫描和皮肤活检。这是否有些过度反应了？”	</p>
+<p>	 	</p>
+<p>	林医生没有直接回答。她在平板上滑动着，然后抬起眼，眼神里有一种职业性的关切，但那关切背后，是我无法解读的东西。	</p>
+<p>	 	</p>
+<p>	“赵博士，您最近是否经历过记忆断层？比如，想不起某个特定时间段发生的事？或者对某些明明应该熟悉的人或事物感到陌生？”	</p>
+<p>	 	</p>
+<p>	我沉默了两秒。“我忘记了X的长相和名字。”	</p>
+<p>	 	</p>
+<p>	“X是谁？”	</p>
+<p>	 	</p>
+<p>	“项目首席外星生物形态学家。”我说，“我的同事。我的朋友。”	</p>
+<p>	 	</p>
+<p>	林医生在平板上记录着。“您确定这个人存在吗？”	</p>
+<p>	 	</p>
+<p>	这个问题像一根冰针刺入脊椎。“你什么意思？”	</p>
+<p>	 	</p>
+<p>	“根据我的权限可以调阅的资料，”“星球种子”项目团队名单中确实有一位代号为X的成员，保密级别极高，但除此之外……“她顿了顿，”没有任何关于这个人的其他记录。没有照片，没有全名，没有过往履历。甚至团队内部通讯录里，也只有这个代号。“	</p>
+<p>	 	</p>
+<p>	”那是因为保密规定。“	</p>
+<p>	 	</p>
+<p>	”是的，保密规定可以解释很多。“林医生放下平板，走近一步，”但赵博士，您刚才说，您‘忘记了’他的长相和名字。问题是——“她的声音压得很低，几乎是耳语，”如果这个人从一开始就没有留下任何可被记住的个人信息，那么您所谓的‘忘记’，会不会其实是……对某种‘被植入认知’的察觉？“	</p>
+<p>	 	</p>
+<p>	房间里突然安静得能听到我自己的心跳。	</p>
+<p>	 	</p>
+<p>	”植入认知？“我重复这个词，”你是说，有人让我‘以为’有X这个人？“	</p>
+<p>	 	</p>
+<p>	”或者，“林医生的眼神飘向墙角的监控摄像头，那红色的小灯正稳定地亮着，”或者不是‘人’。您比我更了解那颗‘种子’。我们检测到它在持续释放低频的、非电磁性的信息场。这种场的影响……我们还在研究。“	</p>
+<p>	 	</p>
+<p>	我想起手背上那些幻觉般的纹路。	</p>
+<p>	 	</p>
+<p>	”所以这些检查……“	</p>
+<p>	 	</p>
+<p>	”是为了确认您是否受到‘种子’的信息污染。“林医生坦然道，”郑将军亲自下的命令。您是最接近核心的研究者之一，也是X消失前最后接触的人。如果您出现异常，我们需要知道原因、程度，以及……传染性。“	</p>
+<p>	 	</p>
+<p>	最后一个词她说得很轻，但落在寂静的房间里，重如千钧。	</p>
+<p>	 	</p>
+<p>	传染性。	</p>
+<p>	 	</p>
+<p>	我想大笑，或者尖叫。但他们已经抽走了我的血，扫描了我的大脑，检查了我身上每一寸皮肤。而我甚至不知道他们在找什么——除了那些正在我记忆中蛀洞的空白。	</p>
+<p>	 	</p>
+<p>	林医生的通讯器响了。她看了一眼，表情微变。”请稍等，赵博士。“	</p>
+<p>	 	</p>
+<p>	她走到房间另一头接听电话。我听到模糊的词语：”异常……比对……需要隔离……“然后她挂断电话，走了回来。	</p>
+<p>	 	</p>
+<p>	”检查的初步结果已经出来了。“她的声音恢复了完全的职业化，”好消息是，您的生理指标一切正常。没有发现已知的病原体、辐射残留或异常生化标志物。脑部结构也没有器质性病变。“	</p>
+<p>	 	</p>
+<p>	”那坏消息呢？“	</p>
+<p>	 	</p>
+<p>	林医生沉默了几秒。”坏消息是，您的海马体——负责长期记忆形成的脑区——显示出异常的神经活动模式。不是损伤，而是……过度同步化。就像所有的神经元都在按同一个节拍放电，太整齐了，整齐得不自然。我们的神经学家从未见过这种模式。“	</p>
+<p>	 	</p>
+<p>	她调出平板上的图像，递给我看。我的大脑扫描图，海马体区域闪烁着一种诡异的、均匀的荧光蓝色。	</p>
+<p>	 	</p>
+<p>	”这意味着什么？“我问。	</p>
+<p>	 	</p>
+<p>	”还不确定。“林医生收回平板，”可能是无害的神经适应性改变，也可能是……某种信息编码留下的痕迹。我们正在建立模型，但这需要时间。“	</p>
+<p>	 	</p>
+<p>	”那么我现在可以走了吗？“	</p>
+<p>	 	</p>
+<p>	”暂时还不行。“她说，”我们需要您在这里观察二十四小时。这是标准程序。而且……“她犹豫了一下，”外面正在召开紧急会议，关于‘种子’的最新情况。在会议结果出来前，所有核心研究人员都被建议留在可控范围内。“	</p>
+<p>	 	</p>
+<p>	可控范围。 我被软禁了，用最礼貌的方式。	</p>
+<p>	 	</p>
+<p>	林医生离开后，房间里只剩下我一个人。我躺在那张过于坚硬的病床上，盯着天花板。白色，一片纯粹的白色，没有任何瑕疵，没有任何特征。就像我记忆中X的脸。	</p>
+<p>	 	</p>
+<p>	闭上眼睛，我试图回忆。不是回忆X，而是回忆更早的事——种子坠落之前的事。	</p>
+<p>	 	</p>
+<p>	记忆像一部老电影，开始播放。	</p>
+<p>	 	</p>
+<p>	六个月前。深空监测网，第三十七号中继站。	</p>
+<p>	 	</p>
+<p>	屏幕上的异常信号第一次出现时，值班的工程师以为那是仪器故障。	</p>
+<p>	 	</p>
+<p>	“又来了，”年轻的秦浩嘟囔着，敲击键盘调出校准程序，“这破玩意儿该升级了。上周是太阳风干扰，这周是什么？宇宙微波背景辐射的随机涨落？”	</p>
+<p>	 	</p>
+<p>	但他的前辈，老陈，没有说话。老陈盯着那条在噪声中若隐若现的轨迹线，已经盯了十分钟。他的手指悬在警报按钮上方，迟迟没有按下。	</p>
+<p>	 	</p>
+<p>	“怎么了，陈工？”秦浩凑过来。	</p>
+<p>	 	</p>
+<p>	“你看它的速度曲线。”老陈的声音干涩，“进入太阳系后，三次减速，每次减速的ΔV都完全一致，误差小于千分之零点三。自然天体不会这样减速。还有轨道——它避开了所有大质量天体的洛希极限，就像……就像在读取我们的星图。”	</p>
+<p>	 	</p>
+<p>	秦浩的笑容僵住了。“您是说……”	</p>
+<p>	 	</p>
+<p>	“我不知道。”老陈终于按下了警报按钮，“让上面的人判断吧。”	</p>
+<p>	 	</p>
+<p>	警报沿着保密线路传向地球。四个小时后，全球最高级别的防御委员会召开了第一次闭门会议。那时，种子还被称作“UO-1”——不明物体一号。	</p>
+<p>	 	</p>
+<p>	我第一次听说UO-1，是在项目启动会上。会议室里坐满了人：军方代表、天体物理学家、航天工程师、生物安全专家，甚至还有两个从联合国借调来的外星文明接触协议顾问——那套协议是人类在二十一世纪三十年代制定的，基于无数科幻作品和SETI研究，从未真正使用过。	</p>
+<p>	 	</p>
+<p>	郑将军站在投影前，表情凝重。“先生们，女士们，我们有一个问题。”他切换幻灯片，UO-1的模拟图像出现在屏幕上：一个暗哑的、不规则的多面体，在恒星背景前缓缓旋转。	</p>
+<p>	 	</p>
+<p>	“它来自奥尔特云方向，目前距离地球零点三光年。按照现有轨迹，它将在四个月后进入地月系统。我们的初步分析表明，它不是自然天体。它的反照率低于任何已知材料，几乎不反射任何光线，但它会主动吸收特定频段的电磁波——包括我们的雷达探测波。”	</p>
+<p>	 	</p>
+<p>	会议室里响起低语。	</p>
+<p>	 	</p>
+<p>	“它有多大？”我问。	</p>
+<p>	 	</p>
+<p>	“根据热辐射和引力微透镜效应推算，直径约十二到十五米，质量约八百吨。”回答我的是李维，他当时已经负责物理分析组，“密度不均，内部结构无法探测。它表面似乎有一层……信息屏蔽场。”	</p>
+<p>	 	</p>
+<p>	“主动信号呢？”另一个声音问。	</p>
+<p>	 	</p>
+<p>	“零。”郑将军说，“我们发送了所有标准联络协议：质数序列、元素周期表、人类DNA双螺旋结构图、和平问候语。没有回应。它就像一块沉默的石头——但石头不会在太空中自主调整轨道。”	</p>
+<p>	 	</p>
+<p>	会议持续了六个小时。争论的焦点很明确：是迎接，还是摧毁？	</p>
+<p>	 	</p>
+<p>	主张摧毁的一派以军方为主。“我们不能让一个未知的、显然具有智能控制能力的东西进入近地轨道。如果它是探测器，甚至是武器呢？我们必须展示威慑力。”	</p>
+<p>	 	</p>
+<p>	主张接触的一派则以科学界为主。“这是人类首次面对可能的地外文明造物。摧毁它，我们可能永远失去理解宇宙邻居的机会。这是犯罪。”	</p>
+<p>	 	</p>
+<p>	我是少数没有明确表态的人之一。我一直在看那些数据——UO-1吸收电磁波的频段图谱。那不是随机的吸收，而是有选择的：它特别偏爱氢原子21厘米线附近的频率，那是宇宙中最普遍的信号，也是人类最早用于SETI搜索的频段。	</p>
+<p>	 	</p>
+<p>	它在听。或者，它在进食。	</p>
+<p>	 	</p>
+<p>	会议结束时，郑将军做出了折中决定：继续尝试联络，同时准备拦截方案。“如果它在进入地月轨道前仍未回应，我们将进行非摧毁性拦截——尝试捕捉或偏转其轨道。”	</p>
+<p>	 	</p>
+<p>	所有人都知道这个决定背后的潜台词：我们需要更多时间研究它。	</p>
+<p>	 	</p>
+<p>	接下来两个月，UO-1成了全球最高机密。十几个国家的太空机构共享数据，暗地里较劲，试图破解它的秘密。中国的“天眼”射电阵、美国的深空网络、欧盟的引力波探测器阵列，所有能对准它的设备都对准了它。	</p>
+<p>	 	</p>
+<p>	但我们得到的，只有更深沉的沉默。	</p>
+<p>	 	</p>
+<p>	直到它进入地月轨道。	</p>
+<p>	 	</p>
+<p>	我记得那天晚上，我、X、李维，还有几个核心成员，挤在控制中心里。大屏幕上，UO-1的实时轨迹线正稳定地靠近月球。	</p>
+<p>	 	</p>
+<p>	“它要绕月了。”李维说，“完美的引力弹弓轨道，将把它直接送入地球同步轨道。这不是巧合。”	</p>
+<p>	 	</p>
+<p>	X坐在我旁边，膝盖上放着一本厚厚的笔记本。他没用平板，一直坚持用纸笔记录。当时他写下了什么？我努力回忆，只能想起他手指关节因为用力而泛白。	</p>
+<p>	 	</p>
+<p>	“它在选择着陆点。”X突然说，声音很轻，只有我听到了。	</p>
+<p>	 	</p>
+<p>	“什么？”	</p>
+<p>	 	</p>
+<p>	“看它的轨道参数微调。每次经过地球磁场异常区时，它都会修正轨道。”X指着屏幕上跳动的数据，“它在扫描地表。地质构造、磁场强度、大气成分、生物圈信号……它在选择最好的‘土壤’。”	</p>
+<p>	 	</p>
+<p>	那时我以为他用了比喻。	</p>
+<p>	 	</p>
+<p>	现在我知道不是。	</p>
+<p>	 	</p>
+<p>	三个月前。第一次拦截尝试。	</p>
+<p>	 	</p>
+<p>	四枚导弹从隐藏的轨道平台发射。不是核弹头，而是携带高能网状捕捉器和电磁脉冲弹头的特种拦截器。命令是：尽可能完整地捕获目标。	</p>
+<p>	 	</p>
+<p>	导弹接近UO-1时，控制中心的屏幕突然雪花一片。	</p>
+<p>	 	</p>
+<p>	“信号丢失！”	</p>
+<p>	 	</p>
+<p>	“所有遥测中断！”	</p>
+<p>	 	</p>
+<p>	“光学图像——天啊，那是什么？”	</p>
+<p>	 	</p>
+<p>	最后传回的画面，来自一枚导弹上高速摄像机的缓存数据。画面剧烈晃动，UO-1占据了一半视野。在接触前的一刹那，它的表面漾开了一圈涟漪——不是物质的涟漪，而是空间的扭曲，像石子投入水面的倒放。导弹穿过了涟漪，然后……消失了。	</p>
+<p>	 	</p>
+<p>	不是爆炸，不是解体。就是消失了，从所有传感器上同时消失。	</p>
+<p>	 	</p>
+<p>	三十秒后，UO-1的轨道微调，继续向地球坠落。	</p>
+<p>	 	</p>
+<p>	会议室里死一般寂静。	</p>
+<p>	 	</p>
+<p>	“它做了什么？”有人问。	</p>
+<p>	 	</p>
+<p>	“它拒绝了。”X说。他站起身，走到屏幕前，指着定格的画面，“看到涟漪中心的那个点了吗？那是数学奇点。它没有摧毁导弹，它只是……把导弹送走了。送到哪里？另一个维度？另一个时间？我们无法知道。它在展示能力——不是暴力，是理解。它理解我们的意图，然后给出了一个优雅到恐怖的回应：不要打扰我。”	</p>
+<p>	 	</p>
+<p>	那是我第一次感到真正的恐惧。不是对暴力或毁灭的恐惧，而是对某种完全超出理解范畴的存在的恐惧。就像蚂蚁看着人类的手指按下，不是要捏死它，而是要把它的巢穴整个搬进一个玻璃箱——为了观察。	</p>
+<p>	 	</p>
+<p>	郑将军脸色铁青。“第二次拦截准备。这次用动能武器。”	</p>
+<p>	 	</p>
+<p>	“将军，”X转身，他的脸在那天很清晰，我记得那种混合了狂热和忧虑的表情，“如果第一次是警告，第二次可能就是反击了。它已经展示了克制——它没有把导弹扔回地球，没有攻击我们的卫星。它在说：让我降落。”	</p>
+<p>	 	</p>
+<p>	“我们不能让一个未知威胁降落在人口稠密区。”	</p>
+<p>	 	</p>
+<p>	“所以我们要引导它。”X指着地球全息图，“它还在扫描。我们可以用定向能束照射预定区域，改变局部的电磁环境，制造一个‘理想着陆点’的假信号。把它引到无人区。”	</p>
+<p>	 	</p>
+<p>	这个大胆的建议引发了激烈争论。最终，它被采纳了——因为别无选择。我们已经看到，直接攻击无效。	</p>
+<p>	 	</p>
+<p>	三天后，在中国西部的一片荒漠，数台大型相控阵雷达被秘密部署，开始向UO-1发射特定的地面特征信号。我们模拟了稳定地质构造、纯净的水文信号、丰富的微生物圈数据——一个完美的、原始的“生命摇篮”假象。	</p>
+<p>	 	</p>
+<p>	UO-1的轨道开始调整。	</p>
+<p>	 	</p>
+<p>	它上当了。	</p>
+<p>	 	</p>
+<p>	或者说，它接受了我们的邀请。	</p>
+<p>	 	</p>
+<p>	两个月前。坠落日。	</p>
+<p>	 	</p>
+<p>	我在医疗中心的床上翻了个身，记忆的画面继续流淌。	</p>
+<p>	 	</p>
+<p>	那天清晨，我们乘坐直升机抵达预定着陆区。方圆三百公里内的居民已被秘密疏散，理由是“地质勘探危险品泄漏”。天空万里无云，戈壁滩在晨光中泛着铁锈红。	</p>
+<p>	 	</p>
+<p>	“它来了。”通讯频道里，观测站的声音紧绷。	</p>
+<p>	 	</p>
+<p>	我们抬头。一开始，只是一个暗点，在蔚蓝的天空中像一个污渍。然后它开始变大，却没有一般陨石进入大气时的火焰尾迹——它没有摩擦加热，或者它的材料根本不理会摩擦热。	</p>
+<p>	 	</p>
+<p>	它下降得异常缓慢，像一片羽毛，违反所有物理直觉。最后一百米，它几乎悬停，然后轻轻触地。	</p>
+<p>	 	</p>
+<p>	没有撞击坑。没有爆炸。只有一声沉闷的、仿佛大地深呼吸的声音。	</p>
+<p>	 	</p>
+<p>	尘土缓缓沉降。	</p>
+<p>	 	</p>
+<p>	我们穿着全封闭防护服，列队走近。距离五百米时，我第一次看清了它。	</p>
+<p>	 	</p>
+<p>	不，不是“看清”。是“感知”到了它的存在。	</p>
+<p>	 	</p>
+<p>	它躺在那里，像一颗巨大的、畸形的种子。表面是暗哑的深棕色，带着金属光泽，纹理像树皮，又像集成电路板。大约十二米长，最宽处约八米，一端略尖，另一端则有复杂的褶皱结构。它没有明显的前后左右之分，所有面都在缓慢地、几乎不可察觉地脉动。	</p>
+<p>	 	</p>
+<p>	而那种脉动，是有节奏的。不是心跳的节奏，是某种更缓慢、更古老的节奏——像大陆板块的漂移，像冰川的消长。	</p>
+<p>	 	</p>
+<p>	我们架起仪器。辐射读数：正常。电磁读数：复杂到无法解析的频谱。热成像：表面温度与环境完全一致，但内部有无法穿透的冷区。	</p>
+<p>	 	</p>
+<p>	然后X做了那件事。	</p>
+<p>	 	</p>
+<p>	他放下取样工具，蹲下身，摘掉了右手的手套。	</p>
+<p>	 	</p>
+<p>	“你干什么？！”郑将军在频道里怒吼。	</p>
+<p>	 	</p>
+<p>	“它在呼吸。”X说，声音里有一种入迷的恍惚，“我想感受一下。”	</p>
+<p>	 	</p>
+<p>	他的手，赤裸的、人类的手，伸向种子表面。	</p>
+<p>	 	</p>
+<p>	在最后一厘米处，他停住了。不是害怕，而是……像在倾听。	</p>
+<p>	 	</p>
+<p>	然后他说了一句我永远忘不了的话，尽管我现在忘了他说话时的表情：	</p>
+<p>	 	</p>
+<p>	“它在做梦。梦到森林。”	</p>
+<p>	 	</p>
+<p>	紧接着，所有仪器同时爆发出尖锐的警报。种子表面的纹理突然亮起，无数细微的光脉在皮下流淌，汇聚到中心——那个后来我们称为“核心”的位置，一团柔和的白光开始凝聚。	</p>
+<p>	 	</p>
+<p>	X猛地收回手，戴回手套。他的手指在颤抖。	</p>
+<p>	 	</p>
+<p>	“报告情况！”郑将军命令。	</p>
+<p>	 	</p>
+<p>	“它醒了。”X说，然后补充，“或者，它一直醒着，只是现在……注意到我们了。”	</p>
+<p>	 	</p>
+<p>	白光稳定下来，像一个温柔的小月亮，嵌在种子的表面。	</p>
+<p>	 	</p>
+<p>	那就是一切的开端。	</p>
+<p>	 	</p>
+<p>	医疗中心的门开了，打断了我的回忆。	</p>
+<p>	 	</p>
+<p>	林医生走了进来，手里拿着一个新的平板。“赵博士，会议结束了。您可以离开了。”	</p>
+<p>	 	</p>
+<p>	我坐起身。“结果是什么？”	</p>
+<p>	 	</p>
+<p>	她看着我，眼神复杂。“‘种子’被正式定为‘一级文明接触事件’。所有直接接触人员将接受长期健康监测。研究继续，但所有活体采样和核心接触实验……无限期暂停。”	</p>
+<p>	 	</p>
+<p>	“无限期暂停？”我难以置信，“为什么？”	</p>
+<p>	 	</p>
+<p>	林医生没有回答，只是把平板递给我。屏幕上是一份加密简报的摘要页。我快速阅读。	</p>
+<p>	 	</p>
+<p>	简报要点：	</p>
+<p>	 	</p>
+<p>	全球范围内检测到七例“信息缺失”症状报告，均为与“种子”有直接或间接关联的人员，症状与赵明远博士类似（对特定人物/事件的记忆模糊或矛盾）。	</p>
+<p>	 	</p>
+<p>	种子“根系”在地下蔓延速度加快，目前已延伸至地下一点五公里，并在接触地下水层后出现分形生长模式。	</p>
+<p>	 	</p>
+<p>	核心白光辐射出一种非电磁性的“信息场”，场强与日俱增。初步实验表明，该场可在生物神经组织中诱导异常同步活动（与赵博士脑扫描结果一致）。	</p>
+<p>	 	</p>
+<p>	国际专家组投票结果：11票赞成继续接触研究，9票赞成销毁，15票赞成隔离观察。隔离派以微弱优势胜出。	</p>
+<p>	 	</p>
+<p>	“隔离？”我抬头，“怎么隔离一个已经在地球上生根的东西？”	</p>
+<p>	 	</p>
+<p>	“建立多层屏障。物理屏障、电磁屏障、信息屏障。”林医生收回平板，“种子周围十公里将被划为绝对禁区，由军队驻守。所有相关数据将被隔离存储，研究人员只能通过间接方式分析。而您，赵博士……”	</p>
+<p>	 	</p>
+<p>	她停顿了一下。	</p>
+<p>	 	</p>
+<p>	“您将被调离一线研究岗位，担任数据分析顾问。您的工作地点将转移到地下三层的隔离分析中心，未经特别许可，不得离开研究所范围。”	</p>
+<p>	 	</p>
+<p>	我被架空了。或者说，被保护性拘留了。	</p>
+<p>	 	</p>
+<p>	“因为我的记忆问题？”我问。	</p>
+<p>	 	</p>
+<p>	“因为您是第一个出现明显症状的人。”林医生说，“也是记忆残留最完整的人。我们需要您记住——无论记住什么，都是珍贵的数据。但同时，我们不能冒险让您继续直接暴露在种子的影响范围内。”	</p>
+<p>	 	</p>
+<p>	“X呢？”我突然问，“对他的调查呢？”	</p>
+<p>	 	</p>
+<p>	林医生的表情出现了一瞬间的空白。真正的空白，就像她的思维系统突然遇到了无法处理的指令。	</p>
+<p>	 	</p>
+<p>	“X……是谁？”她问，声音里带着真诚的困惑。	</p>
+<p>	 	</p>
+<p>	然后她眨了眨眼，困惑消失了，被职业性的平静取代。“抱歉，我指的是对‘失踪研究员’的调查。调查仍在继续，但目前没有实质性进展。现场没有发现任何生物痕迹或技术残留。”	</p>
+<p>	 	</p>
+<p>	她忘了。就在刚才的一瞬间，她完全忘记了X的存在。	</p>
+<p>	 	</p>
+<p>	而她自己甚至没有察觉。	</p>
+<p>	 	</p>
+<p>	我感到一股寒意从脚底升起，蔓延到全身。	</p>
+<p>	 	</p>
+<p>	种子不仅在抹除X。它还在抹除“被抹除”这个概念本身。	</p>
+<p>	 	</p>
+<p>	林医生离开了，留下我一个人收拾东西。我穿上外套，走到门边。金属门自动滑开，外面是医疗中心的白色走廊。	</p>
+<p>	 	</p>
+<p>	走廊尽头，郑将军站在那里，一身军装笔挺，表情严肃。	</p>
+<p>	 	</p>
+<p>	“赵博士，”他点点头，“我送你回办公室。”	</p>
+<p>	 	</p>
+<p>	我们并肩走在长廊里。脚步声在空旷的走廊里回荡。	</p>
+<p>	 	</p>
+<p>	“我很抱歉，”郑将军突然说，声音很低，“这样的决定。但我们必须谨慎。”	</p>
+<p>	 	</p>
+<p>	“我理解。”	</p>
+<p>	 	</p>
+<p>	“你不理解。”他停下脚步，看着我，“你知道为什么隔离派能赢吗？不是因为数据，不是因为风险评估。是因为恐惧。”	</p>
+<p>	 	</p>
+<p>	他环顾四周，确认没有其他人。	</p>
+<p>	 	</p>
+<p>	“昨天晚上，参与视频会议的三个专家——分别来自美国、俄罗斯和欧盟——在会议结束后三小时内，报告了类似的记忆异常。其中一个人忘记了自己助手十年的名字。另一个人突然无法认出自己的妻子。第三个人……他开始说一种不存在语言，但语法极其严谨。”	</p>
+<p>	 	</p>
+<p>	郑将军的眼中闪过一丝罕见的、属于人类而非将军的恐惧。	</p>
+<p>	 	</p>
+<p>	“它在学习我们，赵明远。通过我们的记忆，通过我们的语言，通过我们认知世界的方式。X可能是第一个深入它内部的人，但绝不是最后一个。而我们甚至不知道，这种‘学习’的终点是什么。”	</p>
+<p>	 	</p>
+<p>	“所以我们要隔离它？等它学会一切？”	</p>
+<p>	 	</p>
+<p>	“不。”郑将军的声音压得更低，“我们在等它犯错。等它暴露出弱点。或者……等我们找到一种方式，与它真正对话。而不是现在这样，单方面的信息渗透。”	</p>
+<p>	 	</p>
+<p>	我们继续往前走。快到我的办公室时，郑将军又说了一句：	</p>
+<p>	 	</p>
+<p>	“记录一切，赵博士。用纸笔，用任何不会被电子化篡改的方式。你的记忆可能是最后的防线。”	</p>
+<p>	 	</p>
+<p>	他离开了。	</p>
+<p>	 	</p>
+<p>	我推开办公室的门。一切如常：堆满文件的桌子、闪烁的电脑屏幕、墙上的项目进度图。	</p>
+<p>	 	</p>
+<p>	我走到桌前，拉开最底层的抽屉。里面有一个老旧的、带锁的铁盒。我打开它，取出一本空白笔记本和一支钢笔。	</p>
+<p>	 	</p>
+<p>	翻开第一页，我写下：	</p>
+<p>	 	</p>
+<p>	“第一天。我还记得：	</p>
+<p>	 	</p>
+<p>	我还记得我是谁。	</p>
+<p>	 	</p>
+<p>	1. 种子会抹除记忆。	</p>
+<p>	 	</p>
+<p>	2. X是第一个受害者。	</p>
+<p>	 	</p>
+<p>	3. 我不是最后一个。	</p>
+<p>	 	</p>
+<p>	我必须记住。”	</p>
+<p>	 	</p>
+<p>	我停笔，看向窗外。研究所的庭院里，那几棵银杏树更黄了。秋天真的深了。	</p>
+<p>	 	</p>
+<p>	而在遥远的西部荒漠，那颗种子正在安静地生长着根须，做着它那关于森林的梦。	</p>
+<p>	 	</p>
+<p>	一个我们终将被包含在内的梦。	</p>
+<p>	 	</p>
+<p>	地下三层没有窗户。	</p>
+<p>	 	</p>
+<p>	这是我搬进隔离分析中心的第一天，最强烈的感受。空气通过高效微粒过滤系统循环，带着恒温恒湿的塑料味，偶尔混杂着远处机房散热的臭氧气息。灯光是LED的冷白色，二十四小时亮着，模拟着永不落日的白昼——或者，更像是手术室的无影灯，照得一切无所遁形。	</p>
+<p>	 	</p>
+<p>	我的新“办公室”更像一个高级囚室。十二平米的空间，一张金属桌，三台与外界物理隔离的终端机（数据通过光纤单向传输，只能接收，不能发送），一张行军床，一个独立的卫生间。墙壁是淡灰色的吸音材料，摸上去有细微的颗粒感。墙角有一个360度监控摄像头，红色指示灯稳定地亮着，像一只永不闭合的眼睛。	</p>
+<p>	 	</p>
+<p>	门上没有锁，只有外侧的电子控制。我拥有“有限的出入权限”，意思是：我可以去走廊尽头的公共休息室、小型健身房和图书馆（藏书经过严格审查，大多是技术手册和经典文学，没有任何当代作品或可能引发“联想”的文本），但不能进入其他分析员的房间，也不能接近通往上层的主电梯。	</p>
+<p>	 	</p>
+<p>	“这是为了保护您，也是为了保护数据。”带我下来的林医生说。她递给我一个特制的手环，黑色，轻质，戴在手腕上几乎感觉不到重量。“健康监测和定位器。如果您的生命体征出现异常，或者试图进入未授权区域，它会发出警报。请不要尝试拆除——内部有微量神经镇静剂，紧急情况下会自动注射。”	</p>
+<p>	 	</p>
+<p>	我接过手环，扣在左手腕上。冰凉。	</p>
+<p>	 	</p>
+<p>	“分析任务已经上传到您的终端。”林医生继续说，“主要是整理种子降落前后的遥测数据，寻找异常模式。您有最高数据访问权限，但所有分析结果都需要通过内部审查才能提交。每天下午四点，会有一次简短的视频会议，汇报进展。”	</p>
+<p>	 	</p>
+<p>	“和谁汇报？”	</p>
+<p>	 	</p>
+<p>	“数据分析委员会。郑将军有时会参加。”她顿了顿，“赵博士，我知道这感觉像……但请理解，我们必须如此。您是珍贵的信息源，但也是潜在的风险点。”	</p>
+<p>	 	</p>
+<p>	“信息源。”我重复这个词。我成了被研究的对象，就像种子一样。	</p>
+<p>	 	</p>
+<p>	林医生离开了。门轻轻合拢，发出一声气压密封的轻响。	</p>
+<p>	 	</p>
+<p>	我坐到终端前，屏幕亮起，需要虹膜和指纹双重验证。通过后，桌面简洁得近乎荒凉：几个数据文件夹图标，一个内部通讯软件（只能与委员会和少数指定人员联系），一个记事本程序，以及一个醒目的红色图标，标签是“紧急协议”。	</p>
+<p>	 	</p>
+<p>	我点开数据文件夹。海量的信息涌来：从种子最初被探测到的深空轨迹数据，到降落时每一毫秒的传感器读数，再到之后每一天的监测报告。图像、频谱、地质震动波形、大气成分变化、根系生长模型……太全了，全到让人窒息。这不像研究资料，更像一座为某个未来文明准备的坟墓，里面埋葬着人类与“他者”接触的全部细节。	</p>
+<p>	 	</p>
+<p>	我开始工作，并非出于使命感，而是因为无事可做。数据整理是枯燥的，但也是一种麻醉剂。我将杂乱的读数归类，标注时间戳，寻找统计意义上的异常值。我的大脑切换到纯技术模式，暂时屏蔽了记忆中的空洞和手腕上那个冰冷的监视器。	</p>
+<p>	 	</p>
+<p>	但种子不允许我忘记。	</p>
+<p>	 	</p>
+<p>	工作到第三个小时，我在一组降落当日的地震波数据里发现了一个异常。通常陨石撞击会产生一个明确的主震波，随后是衰减的余震。但种子的撞击波不同：主震波之后，出现了极其规律的次级波动，间隔完全一致，振幅缓慢增强，持续了整整四十七分钟，然后突然停止。	</p>
+<p>	 	</p>
+<p>	就像……心跳。或者，像某种巨大机器启动时的共振。	</p>
+<p>	 	</p>
+<p>	更诡异的是，这些次级波动的传播方向并非从撞击点向外辐射，而是呈现出复杂的干涉图案，仿佛声波在地下遇到了某种“结构”，并被引导、反射、聚焦。我调出该区域的地质结构图。那片戈壁地下是相对均匀的沉积岩层，理论上不应该产生如此规律的波形干涉。	</p>
+<p>	 	</p>
+<p>	除非，有什么东西在改变地下的结构。	</p>
+<p>	 	</p>
+<p>	我顺着这条线索，调取了后续几周的地震监测数据。每天都有微震，震级很小，几乎无法被人体感知，但仪器能捕捉到。而这些微震的震源位置，正在以每天几米的速度，沿着一个清晰的螺旋轨迹，向深处、向更远处移动。	</p>
+<p>	 	</p>
+<p>	那是根系生长的声音。	</p>
+<p>	 	</p>
+<p>	我打开根系生长模型。根据最初钻孔取样和地质雷达扫描，根系最初以撞击点为中心，呈放射状扩散。但大约在X消失后一周，生长模式改变了。根系开始分化：一部分继续向下，穿透基岩；另一部分则转向，沿着地下水流向、沿着特定的矿物脉络、甚至沿着地质断层的边缘蔓延。它们像拥有智慧的血脉，在地球的皮肤下绘制一幅我们无法理解的蓝图。	</p>
+<p>	 	</p>
+<p>	模型显示，目前最长的根系已经延伸至地下三公里，横向扩散范围超过二十公里。而生长速度，仍在缓慢增加。	</p>
+<p>	 	</p>
+<p>	我盯着屏幕上那些不断延伸、分叉的红色线条，感到一阵眩晕。这不是植物生长，这是……注射。种子正在将它的脉络注入地球的躯体。而我们，坐在这地下三层的白色房间里，记录着注射的过程，却不知道最终会分泌出怎样的“体液”。	</p>
+<p>	 	</p>
+<p>	一阵尖锐的蜂鸣声打断了我的思绪。	</p>
+<p>	 	</p>
+<p>	是手环。它在震动，同时发出柔和的蓝光。屏幕上显示一行小字：“生理压力指标升高。建议休息。请前往休息室进行放松活动。”	</p>
+<p>	 	</p>
+<p>	它在监测我的心率、皮电反应，甚至可能是脑波。我深吸一口气，努力平复。蓝光熄灭。	</p>
+<p>	 	</p>
+<p>	我决定听从建议——并非因为手环的提示，而是我需要看看这个“监狱”的其他部分。	</p>
+<p>	 	</p>
+<p>	走廊空旷，灯光同样惨白。墙壁上每隔一段距离就有一个应急广播喇叭和灭火器。地面是防静电材料，脚步声被吸收，安静得诡异。我走了大约五十米，来到标有“公共休息室”的门前。门自动滑开。	</p>
+<p>	 	</p>
+<p>	里面比我的房间大一些，布置得像廉价酒店的休息区：几张灰蓝色的布艺沙发，一张矮桌，角落里有一台饮料机（只提供水、茶和咖啡），墙上有块屏幕，正无声地播放着风景纪录片——高山流水，与此地隔绝。	</p>
+<p>	 	</p>
+<p>	已经有一个人在里面了。	</p>
+<p>	 	</p>
+<p>	是个年轻男人，看起来不到三十岁，穿着和我一样的灰色便服。他蜷在沙发里，膝盖上放着一本厚厚的书，但眼神没有聚焦在书页上，而是空洞地看着前方。听到我进来的声音，他猛地一颤，像是受惊的动物。	</p>
+<p>	 	</p>
+<p>	“你好。”我说。	</p>
+<p>	 	</p>
+<p>	他盯着我看了几秒，然后缓缓点头，嘴唇动了动，却没发出声音。他的眼睛下有深深的黑眼圈，脸色苍白，手指无意识地抠着书页的边缘。	</p>
+<p>	 	</p>
+<p>	我在他对面的沙发坐下，保持距离。“我是赵明远。今天刚下来。”	</p>
+<p>	 	</p>
+<p>	他又点了点头，这次声音很轻：“许……许海洋。”他说出自己的名字时有些迟疑，仿佛在确认这个名字是否还属于自己。	</p>
+<p>	 	</p>
+<p>	“你来多久了？”	</p>
+<p>	 	</p>
+<p>	“十七天。”他说，然后补充，“也可能是十八天。这里……没有白天黑夜。”	</p>
+<p>	 	</p>
+<p>	许海洋。我听说过这个名字。信号处理组的年轻天才，擅长从噪声中提取模式。他在种子降落后的第一周，负责分析核心白光释放的谐振信号。据说他提出过一个激进的理论：那些信号不是通讯尝试，而是一种“格式化指令”，在重新配置周围时空的信息结构。	</p>
+<p>	 	</p>
+<p>	“你是信号组的许海洋？”我问。	</p>
+<p>	 	</p>
+<p>	他身体微微一僵，眼神闪烁。“曾经是。”他低声说，“现在……我只是在这里看书。”	</p>
+<p>	 	</p>
+<p>	“你看的是什么？”	</p>
+<p>	 	</p>
+<p>	他把书翻转，让我看到封面。《地质学原理》，大学基础教材。	</p>
+<p>	 	</p>
+<p>	“很有意思。”他说，声音里有一种刻意营造的平淡，“岩石的形成，板块的运动，亿万年的时间尺度……让人平静。”	</p>
+<p>	 	</p>
+<p>	但他的手在颤抖。	</p>
+<p>	 	</p>
+<p>	饮料机发出嗡嗡声，完成了加热循环。我起身接了杯热水，坐回来。沉默弥漫。屏幕上，纪录片正展示着亚马孙雨林的树冠，阳光透过缝隙洒下，充满生命力的绿色。	</p>
+<p>	 	</p>
+<p>	“你也出现记忆问题了吗？”我突然问。	</p>
+<p>	 	</p>
+<p>	许海洋的手指骤然收紧，书页被捏出褶皱。他抬起头，眼睛里有东西一闪而过——恐惧，还有别的什么，像是愧疚。	</p>
+<p>	 	</p>
+<p>	“我……不记得了。”他说。	</p>
+<p>	 	</p>
+<p>	“不记得什么？”	</p>
+<p>	 	</p>
+<p>	“不记得……”他舔了舔干燥的嘴唇，“不记得我为什么觉得那些信号很重要。我写了报告，很长，很详细，但现在读起来，像另一个人写的。里面的推导过程我看得懂，但我不记得自己为什么要那样推导。动机……消失了。”	</p>
+<p>	 	</p>
+<p>	他向前倾身，声音压得更低，几乎耳语：“就像有人从我的记忆里，抽走了‘意义’，只留下‘事实’的空壳。”	</p>
+<p>	 	</p>
+<p>	这句话像一把钥匙，打开了我心中的某个锁。是的，这就是我的感觉。我记得关于X的“事实”，但连接这些事实的“意义”——为什么他是我的朋友，为什么他的消失如此重要——正在流失。	</p>
+<p>	 	</p>
+<p>	“还有别的吗？”我问。	</p>
+<p>	 	</p>
+<p>	许海洋犹豫了很久。他环顾四周，看了一眼墙角的摄像头，然后做了一个细微的动作——他把左手从书下抽出，快速地在沙发扶手上摊开，又立刻缩回。	</p>
+<p>	 	</p>
+<p>	只有不到一秒的时间，但我看到了。	</p>
+<p>	 	</p>
+<p>	他的掌心皮肤下，有纹路。比我手背上更明显，更深，颜色是一种暗沉的青铜色，像古老的电路板，或者叶脉。纹路已经蔓延到手指根部。	</p>
+<p>	 	</p>
+<p>	我们的目光相遇。他眼中充满了无声的恳求和警告。	</p>
+<p>	 	</p>
+<p>	“他们知道吗？”我用口型问，没有发出声音。	</p>
+<p>	 	</p>
+<p>	他微微摇头，然后重新把书举到面前，挡住了脸。	</p>
+<p>	 	</p>
+<p>	我坐了一会儿，喝完那杯已经变凉的水，起身离开。在门口，我回头看了一眼。许海洋依然蜷在沙发里，像一尊正在风化的石膏像。	</p>
+<p>	 	</p>
+<p>	回到房间，我锁上门（虽然知道这锁只能从外面打开），坐到床边，抬起自己的右手。	</p>
+<p>	 	</p>
+<p>	在冰冷的LED灯光下，我仔细审视手背。皮肤看起来正常。但我变换角度，让光线以极低的角度掠过皮肤表面时，我看到了——	</p>
+<p>	 	</p>
+<p>	极其细微的凸起。不是血管，不是疤痕。是比头发丝还细的线条，排列成一种非随机的、分形的图案。颜色不是金属色，而是比周围皮肤稍深的肉色，几乎无法分辨。但它在那里。而且，当我用指尖轻轻触摸时，能感觉到极其轻微的粗糙感，像最细的砂纸。	</p>
+<p>	 	</p>
+<p>	它不是幻觉。它在生长。	</p>
+<p>	 	</p>
+<p>	我打开终端，调出医学数据库，搜索“皮肤异常增生”、“神经性皮炎”、“金属沉积症”。没有任何已知病症的皮肤表现与我手背的纹路相符。它独一无二。	</p>
+<p>	 	</p>
+<p>	我又调取了许海洋的档案（我的权限确实高得惊人）。健康记录一栏，最近一次全面检查是在十天前，结论是“各项指标正常，轻度焦虑状态，建议观察”。没有提及皮肤异常。	</p>
+<p>	 	</p>
+<p>	要么是检查时纹路还没出现，要么是……检查结果被修改了。	</p>
+<p>	 	</p>
+<p>	我关闭终端，躺到床上，盯着天花板。吸音材料的纹理在强光下形成微小的阴影，那些阴影的图案，不知为何，让我想起了根系生长模型里的分叉。	</p>
+<p>	 	</p>
+<p>	睡眠来得断断续续，充斥着混乱的梦境。我梦见自己走在无边无际的图书馆里，书架高耸入云，但所有的书都是空白的。我翻开一本，又一本，纸页雪白，没有任何字迹。然后我低头，发现自己的双手变成了树根，深深地扎进图书馆的大理石地板，裂缝蔓延，整个建筑开始崩塌。	</p>
+<p>	 	</p>
+<p>	惊醒时，手环显示凌晨三点。喉咙干得发痛。	</p>
+<p>	 	</p>
+<p>	我起身喝水，顺便看了眼终端。有一个新消息提示，发送时间是两小时前，来源是“数据分析委员会-加密通道”。标题是：“关于‘X-记忆残留现象’的初步调查征询”。	</p>
+<p>	 	</p>
+<p>	点开，内容很简洁：	</p>
+<p>	 	</p>
+<p>	“赵明远博士，	</p>
+<p>	根据您此前报告的记忆异常现象（对特定人物‘X’的特征记忆缺失），委员会希望进行更深入的认知评估。请于明日09:00前往地下二层B-7室，参与由神经科学专家主持的系列测试。	</p>
+<p>	测试可能涉及记忆唤起、联想反应及潜在的信息污染检测。	</p>
+<p>	请做好准备。	</p>
+<p>	——数据分析委员会 秘书处”	</p>
+<p>	 	</p>
+<p>	不是请求，是命令。	</p>
+<p>	 	</p>
+<p>	地下二层是医疗和实验区。B-7室……我想起在建筑平面图上看过，那是深层脑波监测和认知干预实验室。他们不仅要观察我的记忆缺失，还打算主动探查，甚至可能“修复”或“清理”。	</p>
+<p>	 	</p>
+<p>	我感到一阵本能的抗拒。我的记忆，即使是残缺的、被侵蚀的，也是我仅剩的东西。让外人——尤其是那些可能代表着“隔离派”强硬路线的人——翻弄我的大脑，像翻弄一块故障硬盘，这想法让我恶心。	</p>
+<p>	 	</p>
+<p>	但我有选择吗？	</p>
+<p>	 	</p>
+<p>	我回复：“收到。将准时参加。”	</p>
+<p>	 	</p>
+<p>	发送。	</p>
+<p>	 	</p>
+<p>	夜还长。我再也睡不着，便重新坐到终端前，继续整理数据。这次，我调取了X消失前后，所有接近种子核心区域人员的健康监测记录。	</p>
+<p>	 	</p>
+<p>	记录本身平淡无奇：常规体检，压力指数偏高，但无人报告严重不适——除了记忆问题。但在访问日志里，我发现了一个异常。	</p>
+<p>	 	</p>
+<p>	在X消失后的第四十八小时，所有曾进入核心区半径一百米内的人员（包括我），其个人终端和房间内监控系统的数据，有长达六分钟的“同步丢帧”。不是故障，不是信号中断，而是所有设备在同一秒开始，记录的画面和音频出现完全一致的、无法解释的静态噪点，六分钟后恢复。	</p>
+<p>	 	</p>
+<p>	六分钟。X消失的过程只持续了不到十秒。那么，剩下的时间呢？发生了什么？	</p>
+<p>	 	</p>
+<p>	更奇怪的是，这段“丢帧”期在官方日志里被标记为“设备校准维护”，而所有相关人员的个人记忆里，都没有这六分钟的任何印象。我们只记得X消失，然后大家撤退、隔离、汇报。中间的过程……一片平滑的空白。	</p>
+<p>	 	</p>
+<p>	我查询“设备校准维护”的记录。没有详细工单，只有一个高层授权代码。代码的签发者是：郑将军。	</p>
+<p>	 	</p>
+<p>	他在掩盖什么？或者，他在保护什么？	</p>
+<p>	 	</p>
+<p>	一个念头浮起，冰冷而清晰：也许郑将军让我记录一切，并不是为了对抗种子，而是为了在种子完成它的“工作”之后，还能留下一点人类曾抵抗过的证据。就像在沉船里放置黑匣子。	</p>
+<p>	 	</p>
+<p>	而我和许海洋这样的人，就是活动的黑匣子。记录着，同时也被记录着。	</p>
+<p>	 	</p>
+<p>	早上八点五十分，我离开房间。走廊里遇到了另一个分析员，一个中年女性，她向我点头致意，眼神快速掠过我的手背，然后移开，脚步不停地走向另一个方向。她看到了吗？还是只是我的多疑？	</p>
+<p>	 	</p>
+<p>	地下二层的氛围更加冰冷。空气里的消毒水气味更浓。B区的走廊两侧是厚重的金属门，门上只有编号和小小的观察窗。有些窗后亮着灯，有些黑暗。	</p>
+<p>	 	</p>
+<p>	B-7室的门开着。里面是一个类似核磁共振仪器的房间，但中央不是圆环，而是一个连接着无数线缆的躺椅，上方悬着半球形的传感器阵列。两个穿着白大褂的技术人员正在调整设备。旁边站着一位六十岁左右的学者，头发银白，面容温和，但眼神锐利如手术刀。	</p>
+<p>	 	</p>
+<p>	“赵博士，欢迎。我是沈宜修，认知神经科学部的。”他伸出手。	</p>
+<p>	 	</p>
+<p>	我与他握手。他的手干燥，有力。	</p>
+<p>	 	</p>
+<p>	“感谢您配合我们的研究。”沈教授示意我坐到躺椅上，“今天的测试主要是无创性的。我们会记录您在特定刺激下的脑波反应、皮肤电导、眼动轨迹等。目的是绘制您认知系统中关于特定概念——比如‘X’，比如‘种子核心’——的神经表征图谱，并与基线数据对比，评估信息污染的深度和模式。”	</p>
+<p>	 	</p>
+<p>	“污染。”我重复这个词。	</p>
+<p>	 	</p>
+<p>	“一个方便的工作术语。”沈教授微笑，“指代那些非经正常感官输入、却嵌入认知结构的外源性信息模式。请放松，就像做一次详细的体检。”	</p>
+<p>	 	</p>
+<p>	技术人员帮我连接电极，冰凉的凝胶贴在头皮上。半球形传感器阵降低，悬在我面部上方几十厘米处。	</p>
+<p>	 	</p>
+<p>	测试开始。第一阶段是词汇联想。一个合成语音念出词语，我需要说出脑海中浮现的第一个词。	</p>
+<p>	 	</p>
+<p>	“天空。” “蓝色。”	</p>
+<p>	“树木。” “绿色。”	</p>
+<p>	“朋友。” 我停顿了。一个空白。“……信任。”	</p>
+<p>	“种子。” 另一个空白。然后：“生长。”	</p>
+<p>	“X。” 更长的空白。喉咙发紧。“……空缺。”	</p>
+<p>	 	</p>
+<p>	沈教授在观察屏上记录着什么。	</p>
+<p>	 	</p>
+<p>	第二阶段是图像反应。屏幕上快速闪过各种图片：自然风景、城市街景、人脸、抽象几何图形。其中混入了几张我熟悉的照片：项目组的合影（那张没有X的合影）、种子外壳的特写、核心白光的原始图像。	</p>
+<p>	 	</p>
+<p>	当种子核心的图像闪过时，监测仪器发出一阵轻微的嗡鸣。我眼前的画面似乎扭曲了一瞬，白光仿佛从屏幕中溢出，充满了整个视野。我听到一种声音，不是通过耳朵，而是直接在大脑中响起：一种低沉的、多声部的嗡鸣，像无数昆虫振翅，又像远方的机械运转。	</p>
+<p>	 	</p>
+<p>	“赵博士？”沈教授的声音把我拉回。他看着我，眼神探究，“您刚才有大约两秒的脑波失同步。看到了什么吗？”	</p>
+<p>	 	</p>
+<p>	“光。”我如实说，“还有声音。不像是听到的，像是……想起的。”	</p>
+<p>	 	</p>
+<p>	“‘想起的声音’。”沈教授若有所思地记录，“有趣。第三阶段，我们需要进行一点深度的记忆唤起。我们会使用经颅磁刺激，轻微调制您海马体的活动，帮助您回溯特定时间点的记忆。这可能会有轻微眩晕，但无害。”	</p>
+<p>	 	</p>
+<p>	我同意了。比起未知，我更想知道自己记忆里到底还剩下什么。	</p>
+<p>	 	</p>
+<p>	设备调整后，一种轻微的、有节奏的敲击感出现在我的太阳穴后方。沈教授的声音变得舒缓、引导：“现在，请回到种子坠落的那天。您第一次近距离看到它的时候。描述细节。”	</p>
+<p>	 	</p>
+<p>	记忆画面浮现，比我自己回忆时清晰得多：暗哑的外壳，脉动的纹理，那种非生命的“呼吸”感……	</p>
+<p>	 	</p>
+<p>	“很好。现在，请聚焦于X。他在您身边。他在做什么？”	</p>
+<p>	 	</p>
+<p>	画面晃动。X的身影出现，但依然没有脸，只有轮廓。他蹲下身，摘下手套……	</p>
+<p>	 	</p>
+<p>	“继续。”沈教授的声音仿佛从很远的地方传来。	</p>
+<p>	 	</p>
+<p>	X的手伸向种子表面。在即将触碰的瞬间，他的动作凝固了。然后，在我的记忆画面里，X缓缓转过头，看向“镜头”——看向正在回忆这个场景的我。	</p>
+<p>	 	</p>
+<p>	他的脸上没有五官，只有一个缓慢旋转的、微小的白色光涡。	</p>
+<p>	 	</p>
+<p>	光涡深处，传来了声音。不是X的声音，是无数声音的叠加，男女老少，各种语言，但说着同一句话，相位交错，形成令人疯狂的合唱：	</p>
+<p>	 	</p>
+<p>	“我们正在成为森林。”	</p>
+<p>	 	</p>
+<p>	我猛地从躺椅上弹起，扯掉了头上的电极。冷汗浸透了我的后背。	</p>
+<p>	 	</p>
+<p>	“赵博士！”技术人员连忙上前。	</p>
+<p>	 	</p>
+<p>	沈教授却显得异常冷静。他盯着屏幕，上面是我刚才的脑波图——一段剧烈振荡后，归于一种极度规律的、平滑到诡异的正弦波。	</p>
+<p>	 	</p>
+<p>	“了不起。”沈教授低声说，更像是在自言自语，“污染不是覆盖，是翻译。它在将人类的神经活动，翻译成它的语言……”	</p>
+<p>	 	</p>
+<p>	“那是什么？”我声音沙哑，指着屏幕上那段平滑的波形。	</p>
+<p>	 	</p>
+<p>	“我们称之为‘种子谐波’。”沈教授看向我，眼神复杂，“在几乎所有出现记忆异常的受试者大脑里，都能检测到这种波。程度不同。您的……非常强烈，而且与特定记忆节点耦合。刚才您听到、看到什么了吗？”	</p>
+<p>	 	</p>
+<p>	我犹豫了。说出那句话，会让我显得更疯狂，更值得被“隔离”甚至“处理”。但沈教授的眼神里，除了科学家的好奇，还有一种更深的东西——也许是同病相怜？他的左手一直插在白大褂口袋里。	</p>
+<p>	 	</p>
+<p>	“它说：‘我们正在成为森林。’”我最终还是说了出来。	</p>
+<p>	 	</p>
+<p>	沈教授沉默了很久。然后，他缓缓从口袋里抽出左手，解开袖口，将手腕内侧展示给我看。	</p>
+<p>	 	</p>
+<p>	那里的皮肤下，纹路比我和许海洋的都要清晰、密集。不是叶脉，更像是……文字。扭曲的、非任何人类文明的文字，像藤蔓一样缠绕着他的手腕。	</p>
+<p>	 	</p>
+<p>	“我也是。”他平静地说，“我们都在它的‘翻译’名单上。区别只在于进度。”	</p>
+<p>	 	</p>
+<p>	“这是什么？”我问，感到一种奇异的冷静。	</p>
+<p>	 	</p>
+<p>	“我们称之为‘认知纹身’。”沈教授拉回袖子，“种子信息场与神经系统长期相互作用的物理显化。它不是疾病，不是感染。它是一种……烙印。证明这个认知系统已经被‘阅读’过，并且正在被‘重写’。”	</p>
+<p>	 	</p>
+<p>	“重写成什么？”	</p>
+<p>	 	</p>
+<p>	“不知道。”沈教授摇头，“也许是它理解的‘人类’，也许是它森林里的一棵树，也许是我们完全无法想象的东西。但重写已经开始。记忆缺失只是第一步。下一步，可能是情感、逻辑、自我意识……”	</p>
+<p>	 	</p>
+<p>	他关闭了设备，示意技术人员离开。房间里只剩下我们两人。	</p>
+<p>	 	</p>
+<p>	“委员会知道吗？”我问。	</p>
+<p>	 	</p>
+<p>	“一部分人知道。但分歧很大。”沈教授低声说，“有人认为这是可控的异化，是进化的代价。有人认为必须立即中止，哪怕摧毁所有‘感染者’。郑将军……他在走钢丝，试图在种子完成重写前，找到对话或者反击的方法。你的记忆残留，你的‘污染深度’，可能是一个突破口——既是最危险的点，也可能是唯一的钥匙。”	</p>
+<p>	 	</p>
+<p>	“所以这些测试……”	</p>
+<p>	 	</p>
+<p>	“一方面是真的研究，另一方面，是给委员会里那些‘清除派’看的，证明我们还在努力‘理解’和‘控制’。”沈教授苦笑，“但我和你都知道，有些东西，一旦开始，就停不下来了。”	</p>
+<p>	 	</p>
+<p>	他递给我一张小小的存储卡。“这是你今天测试的‘原始数据’备份，以及我私下做的一些分析模型。加密方式很简单，你的生日倒序。不要存在终端里，找个地方藏好。也许有一天，有人需要知道这一切是怎么开始的。”	</p>
+<p>	 	</p>
+<p>	我接过冰冷的存储卡，握在手心。	</p>
+<p>	 	</p>
+<p>	“接下来我会怎样？”我问。	</p>
+<p>	 	</p>
+<p>	“继续观察。继续记录。”沈教授说，“同时，尽量保持‘你’自己。记住那些让你成为‘赵明远’的东西，哪怕它们正在变得毫无意义。这是目前唯一能做的抵抗。”	</p>
+<p>	 	</p>
+<p>	他按下按钮，门开了。	</p>
+<p>	 	</p>
+<p>	“保重，赵博士。记住，你不是一个人。”	</p>
+<p>	 	</p>
+<p>	我离开B-7室，走回走廊。手心里的存储卡像一块烧红的炭。	</p>
+<p>	 	</p>
+<p>	回到地下三层自己的房间，我锁上门，背靠着冰冷的金属门板滑坐在地上。抬起右手，在无影灯下仔细观察。	</p>
+<p>	 	</p>
+<p>	那些纹路，似乎比早上又延长了微不足道的一毫米。它们正沿着静脉的路径，向手腕蔓延。	</p>
+<p>	 	</p>
+<p>	我拿出沈教授给的存储卡，又翻出那个带锁的铁盒。里面躺着那本只写了几行字的笔记本。我打开新的一页，用笔写下：	</p>
+<p>	 	</p>
+<p>	“第三天。我还记得我是谁。认知纹身正在生长。沈教授也是感染者。种子在翻译我们。	</p>
+<p>	它说：我们正在成为森林。	</p>
+<p>	我必须记住：我是赵明远。我曾是人类。”	</p>
+<p>	 	</p>
+<p>	笔尖停顿，墨水在纸上晕开一个小点。	</p>
+<p>	 	</p>
+<p>	然后，我在下面又加了一行，字迹用力得几乎划破纸背：	</p>
+<p>	 	</p>
+<p>	“但我不知道，这份记忆，还能坚持多久。”	</p>
+<p>	 	</p>
+<p>	回到房间后的七十二小时，世界被简化为三件事：数据、纹路、以及越来越难以维持的睡眠。	</p>
+<p>	 	</p>
+<p>	沈教授给的存储卡像一颗沉默的种子，被我藏在了卫生间通风口松动的金属格栅后面。我没有立刻查看。一种莫名的谨慎让我等待，仿佛过早地接触那些数据，会加速某种不可逆的进程。或者说，我害怕知道得太多。	</p>
+<p>	 	</p>
+<p>	手环尽职地监测着我的生命体征，每隔几小时就会轻柔震动，提醒我“压力指标临界”或“建议补充水分与休息”。我服从它的建议，像服从一个温和的狱卒。公共休息室里又遇到了许海洋两次。我们不再交谈，只是交换短暂的眼神。他的气色更差了，眼下的乌青几乎变成淤伤的颜色，掌心在握杯时会不自觉地蜷缩，隐藏那已经蔓延到指节的青铜色纹路。	</p>
+<p>	 	</p>
+<p>	我的纹路也在生长。现在，在特定角度的光线下，已经能清晰地看到右手手背上的分形图案：它从原先零星的点状，连接成了纤细的网，覆盖了半个手背，并且正沿着指缝和腕部缓慢延伸。触摸时，能感觉到皮肤下极细微的、类似软骨的硬度。不痛，不痒，只是存在——一个来自内部的、沉默的见证。	</p>
+<p>	 	</p>
+<p>	第四天下午，例行视频会议。屏幕分成四格，对面是数据分析委员会的三位代表：一位是我不认识的心理学家，一位是军方技术官员，还有郑将军。我的画面在右下角，很小，显得苍白而遥远。	</p>
+<p>	 	</p>
+<p>	“赵博士，过去七十二小时的数据整理，有新的发现吗？”技术官员问，声音经过处理，带着金属质感。	</p>
+<p>	 	</p>
+<p>	我汇报了关于地震波规律性和根系生长模型更新的情况，语气平稳，像在读一份无关紧要的报告。我隐瞒了沈教授测试时出现的“种子谐波”和那句幻听——它们没有被记录在官方提交的数据里，只存在于沈教授给我的那张卡和我的记忆中。	</p>
+<p>	 	</p>
+<p>	郑将军听得仔细，在我汇报完后，他问：“关于早期接触人员（包括你自己）的记忆异常，在数据层面，有没有找到可能的物理诱因或关联信号？”	</p>
+<p>	 	</p>
+<p>	这是个陷阱，还是真正的探究？	</p>
+<p>	 	</p>
+<p>	“没有直接关联信号。”我谨慎地回答，“记忆异常与电磁辐射剂量、生物采样暴露程度均无统计相关性。但有趣的是，”我顿了顿，决定抛出一点无害的观察，“所有报告记忆异常的人员，在种子降落初期，都曾暴露于核心白光的直接或间接视觉刺激下。也许存在某种非电磁性的信息载体，通过视觉通路产生影响。”	</p>
+<p>	 	</p>
+<p>	“光本身就是电磁波。”技术官员反驳。	</p>
+<p>	 	</p>
+<p>	“但我们的仪器捕捉不到白光释放的任何传统电磁频谱成分。”我说，“它可能是一种我们无法测度的‘信息光’。”	</p>
+<p>	 	</p>
+<p>	屏幕上的心理学家点了点头，记录着什么。	</p>
+<p>	 	</p>
+<p>	郑将军沉默片刻，说：“继续观察。尤其注意任何……主观感受的变化。包括梦境、直觉、非逻辑联想。这些可能比仪器数据更敏感。”	</p>
+<p>	 	</p>
+<p>	会议结束。我的画面暗下去。	</p>
+<p>	 	</p>
+<p>	郑将军最后那句话，是在暗示他知道更多，还是在鼓励我成为更敏感的探测器？	</p>
+<p>	 	</p>
+<p>	夜深人静时，我终于取出了那张存储卡。用一根回形针撬开终端侧面一个不起眼的塑料盖——那是早期型号预留的物理数据接口，早已被软件屏蔽，但硬件还在。我将存储卡插入读卡器，连接上这个被遗忘的接口，绕过系统监控。	</p>
+<p>	 	</p>
+<p>	解密很简单，生日倒序。一个文件夹弹出来，里面有几个文件：“脑波谐波分析模型.pdf”、“认知纹身生长记录.xlsx”、“信息场渗透理论框架.docx”，以及一个标注为“原始录音-测试间歇-片段A”的音频文件。	</p>
+<p>	 	</p>
+<p>	我首先点开了脑波分析模型。沈教授用严谨的数学语言描述了他观察到的“种子谐波”：一种频率极低（低于0.1赫兹）、振幅稳定、相位高度同步的脑电活动。它不干扰正常思维，反而像一种“背景音”，逐渐与个体的基础神经振荡耦合。最令人不安的结论写在最后：	</p>
+<p>	 	</p>
+<p>	“谐波并非‘噪音’，而是‘信号’。它具有自相似的分形结构，与种子根系生长模式、外壳纹路、甚至降落时的地震波干涉图案，在数学上同源。初步分析表明，该谐波可能是一种‘认知结构素’，正逐步重组受试者的神经连接模式，使其趋向于某种……外部定义的‘最优态’。重写进程与谐波强度正相关，且似乎不可逆。”	</p>
+<p>	 	</p>
+<p>	“认知结构素”。 “最优态”。 不可逆。	</p>
+<p>	 	</p>
+<p>	每个词都像冰块落在胃里。	</p>
+<p>	 	</p>
+<p>	我打开认知纹身记录。这是一个加密的表格，列出了沈教授私下追踪的十七个“病例”，包括我自己和许海洋。每个人的纹路出现位置、生长速度、形态特征都有详细记录和照片。我的编号是09。沈教授自己的编号是17，备注栏写着：“已蔓延至左上臂，伴随间歇性‘语义抽离’（对常见词汇突然失去意义感知）。”	</p>
+<p>	 	</p>
+<p>	表格最后有总结：“纹路是谐波的物理显化/转录。生长速度与谐波强度、个体暴露程度及‘记忆残留量’有关。赵明远（09）的谐波强度中等，但纹路生长速度相对较慢，可能与其较强的记忆锚定（对‘X’的残留记忆）有关。假设：记忆残留可能形成某种认知‘免疫’或‘缓冲’，延缓重写进程。需进一步验证，但风险极高（深度记忆唤起可能加速谐波同步）。”	</p>
+<p>	 	</p>
+<p>	我盯着那句“记忆残留可能形成某种认知‘免疫’”。这就是为什么我还记得X的碎片？为什么郑将军让我“记住”？但沈教授也警告，深挖这些记忆可能反而会加速被“重写”的过程。这是一个残酷的悖论：记住，是为了抵抗；但记忆本身，可能正是感染的通道。	</p>
+<p>	 	</p>
+<p>	信息场理论框架文件更宏大，也更惊悚。沈教授提出，种子释放的不是传统意义上的场，而是一种“主动信息拓扑场”。它不传递能量，只传递“关系”和“结构”。它像一把无形的刻刀，不是在石头上雕刻，而是在“可能性”的基底上直接刻画现实。当这个场与生物的神经系统（本身也是复杂的信息处理结构）相互作用时，就会发生“翻译”和“转录”——将种子的信息结构，逐步转录到神经连接和细胞组织中。认知纹身是转录在皮肤层面的表现；记忆修改和认知改变则是大脑层面的转录。	</p>
+<p>	 	</p>
+<p>	文件末尾有一段手打的小字，显然是后来添加的：	</p>
+<p>	 	</p>
+<p>	“核心假设：种子不是武器，也不是殖民者。它是一个‘模板’，一个‘定义’。它正在将地球（包括其生物圈、地质圈，最终可能包括其文明产物）重新定义为一个符合其‘本源模式’的系统。我们称之为‘森林’，但这只是基于我们有限感知的比喻。其最终形态不可名状。抗拒或许徒劳，但理解过程本身，是人类尊严的最后体现。——沈宜修 绝笔？”	</p>
+<p>	 	</p>
+<p>	“绝笔”后面那个问号，让我的血液几乎凝固。	</p>
+<p>	 	</p>
+<p>	最后，我点开了那个音频文件。戴上耳机。	</p>
+<p>	 	</p>
+<p>	一开始是窸窸窣窣的摩擦声，像是白大褂的布料摩擦，然后是沈教授压低的声音，背景很安静，可能是在他的私人办公室或某个角落：	</p>
+<p>	 	</p>
+<p>	“……测试间歇，受试者09，赵明远。深度记忆唤起触发了极强的谐波共振，并伴随清晰的幻听和幻视。他听到了那句话……‘我们正在成为森林。’这与07号（许海洋）在两周前高强度信号分析后出现的谵妄内容一致，也与我自己在纹身快速发展期产生的……侵入性思维一致。”	</p>
+<p>	 	</p>
+<p>	沈教授的声音停顿，呼吸声有些沉重。	</p>
+<p>	 	</p>
+<p>	“这句话不是随机的。我回溯了所有能接触到的、与种子直接相关的异常报告，包括那些被归为‘精神压力导致’的案例。发现了一个模式：在记忆异常、认知扭曲的初期，许多受试者都会产生与‘植物’、‘生长’、‘根系’、‘网络’、‘一体化’相关的意象或语言表达。‘森林’是其中最完整、最具象征性的表达。”	</p>
+<p>	 	</p>
+<p>	又是一段沉默，只有细微的电流底噪。	</p>
+<p>	 	</p>
+<p>	“更令人不安的是，我开始在自己身上观察到……思维的改变。不是记忆缺失，而是价值判断的微妙偏移。昨天审阅一份关于销毁种子根系的可行性报告时，我发现自己竟然产生了一种……‘惋惜’感。不是对生命的惋惜，而是对‘一个精妙结构将被破坏’的抽象惋惜。我的专业理性还在，但情感反应的底层参数，似乎被修改了。”	</p>
+<p>	 	</p>
+<p>	他的声音带上了一丝不易察觉的颤抖。	</p>
+<p>	 	</p>
+<p>	“委员会里的分歧正在激化。以安全部为代表的‘清除派’正在收集所有‘感染者’的资料，评估‘隔离失效’的风险。我知道我的名字在名单上，可能你的也是，赵博士。他们不会允许不可控的变量存在，尤其当这个变量正在从内部改变。”	</p>
+<p>	 	</p>
+<p>	录音里传来一声极轻的、仿佛门被小心关上的声音。	</p>
+<p>	 	</p>
+<p>	“这张卡是我留给后来者的……遗言，或许。如果我突然‘被调离’或‘意外身亡’，希望有人能继续记录。记住：种子的目的不是毁灭，是转化。而转化，从定义上，会抹除转化前的一切。包括我们称之为‘人性’的东西。”	</p>
+<p>	 	</p>
+<p>	“保重。”	</p>
+<p>	 	</p>
+<p>	录音结束。	</p>
+<p>	 	</p>
+<p>	我摘下耳机，房间里的寂静瞬间变得震耳欲聋。冷汗已经浸湿了我的后背。沈教授的推测比我想象的更黑暗。这不是一场战争，而是一场缓慢的、全面的定义覆盖。我们不是在与敌人作战，而是在被重新定义成别的东西。	</p>
+<p>	 	</p>
+<p>	而定义者，甚至没有恶意。它只是在执行它的“模板”，像雨水落下，改变地貌。	</p>
+<p>	 	</p>
+<p>	那一夜，我无法入睡。手环监测到心率持续偏高，发出两次警告。我躺在床上，看着天花板上灯光留下的残影，感觉自己像一个躺在手术台上，眼睁睁看着医生准备实施一场未知手术的病人，麻药尚未完全起效。	</p>
+<p>	 	</p>
+<p>	第二天早晨，一个意外的消息传来：沈宜修教授因“突发健康状况”，被紧急送往地面军事医院治疗，其负责的所有认知研究项目暂时由另一位专家接管。	</p>
+<p>	 	</p>
+<p>	“突发健康状况”。我反复咀嚼这个词。是纹身失控了？是“清除派”动手了？还是他自己选择了某种形式的逃避？	</p>
+<p>	 	</p>
+<p>	我去公共休息室，想找许海洋，但他不在。另一个面生的分析员告诉我，许海洋凌晨时分“情绪激动，出现自残倾向”，已被带往医疗层进行“镇静观察”。	</p>
+<p>	 	</p>
+<p>	隔离墙正在收紧。	</p>
+<p>	 	</p>
+<p>	我感到一种冰冷的孤立。熟悉的感染者一个个消失或“被处理”，而我这个记忆残留者，还能在这地下三层待多久？	</p>
+<p>	 	</p>
+<p>	下午，我的终端收到一份新的数据包，来源是根系监测组。要求我对最新探测到的根系异常分形模式进行分析。这像是一种测试，也是一种转移注意力的手段。	</p>
+<p>	 	</p>
+<p>	我打开数据。最新的地质雷达和微震监测显示，根系在约地下五公里深度、靠近一个古老地质断层的区域，生长模式发生了剧变。它们不再只是蔓延，而是开始编织。	</p>
+<p>	 	</p>
+<p>	无数细小的根须以极高的密度缠绕、交织，形成一个直径超过三百米的复杂三维结构。结构内部检测到微弱的、有规律的能量脉冲，脉冲频率与“种子谐波”的基频存在数学上的谐振关系。这个结构，像一个正在地下深处缓慢搏动的心脏，或者一个正在组装的器官。	</p>
+<p>	 	</p>
+<p>	更可怕的是，能量脉冲的强度，与全球范围内几个主要地震带最近观测到的“非构造性微震”活动，呈现出统计上显著的相关性。虽然相关不等于因果，但这个可能性让人不寒而栗：种子的根系，可能正在与地球本身的动力学系统产生耦合。	</p>
+<p>	 	</p>
+<p>	我埋头分析这些数据，试图用数学模型描述那个地下结构的生长方程。工作让我暂时忘记自身的处境。但当我无意间活动僵硬的脖颈，抬起右手去揉太阳穴时，我愣住了。	</p>
+<p>	 	</p>
+<p>	在终端屏幕冰冷的反光中，我右手手背上的纹路，正随着我思考数据时无意识敲击桌面的节奏，微微发光。	</p>
+<p>	 	</p>
+<p>	不是幻觉。是极其黯淡的、荧绿色的微光，像最深海底某些生物发出的磷光。光芒的亮度随着我敲击的节奏（那节奏恰好接近数据的脉冲频率）明暗变化。	</p>
+<p>	 	</p>
+<p>	我猛地停下手，屏住呼吸，盯着手背。	</p>
+<p>	 	</p>
+<p>	光芒缓缓熄灭，纹路恢复成暗沉的肤色。	</p>
+<p>	 	</p>
+<p>	我缓缓地、 deliberately地，再次用指尖敲击桌面，尝试重现刚才的节奏——接近地下结构脉冲频率的节奏。	</p>
+<p>	 	</p>
+<p>	纹路再次亮起。微弱的荧光，沿着分形的脉络流淌，仿佛有生命的光之溪流在手背皮肤下奔涌。	</p>
+<p>	 	</p>
+<p>	一种混合着恶心和奇异美感的战栗传遍全身。我的身体，正在与数千公里外、地下五公里深处的那个外星造物，发生共振。	</p>
+<p>	 	</p>
+<p>	我不是旁观者。我已经是系统的一部分。	</p>
+<p>	 	</p>
+<p>	接下来的几个小时，我像疯了一样进行自我实验。我发现，纹路不仅对特定的物理节奏有反应，当我集中精神回想与种子相关的记忆（尤其是那些伴随强烈情绪的记忆，比如X消失的瞬间，比如看到核心白光时的震撼），纹路也会产生微光，并且亮度似乎与记忆的“清晰度”或情绪强度有关。而当我想起与种子完全无关的、纯粹个人化的记忆（比如和妻子在校园里第一次相遇的情景），纹路则毫无反应。	</p>
+<p>	 	</p>
+<p>	它像一个内嵌的生物传感器，专门探测与种子相关的认知活动。	</p>
+<p>	 	</p>
+<p>	晚上，我做出了一个决定。我不能再被动等待。如果记忆残留真是某种缓冲，如果我的“污染”程度已经不可避免，那么或许，我可以主动利用这一点，去探测、去记录，哪怕这会加速我的异化。	</p>
+<p>	 	</p>
+<p>	我用最隐蔽的方式，在笔记本上记录下纹路对各种刺激的反应模式。然后，我开始尝试主动“聆听”。	</p>
+<p>	 	</p>
+<p>	我坐在床上，关闭所有灯光，让房间陷入绝对的黑暗（除了手环和监控摄像头那微弱的指示灯）。闭上眼睛，努力清空杂念，然后将注意力完全集中在右手手背上，集中在那些微微发热的纹路上。我想象自己的意识顺着纹路流淌，像顺着根系，向下，向下，深入大地，靠近那个搏动的“心脏”。	</p>
+<p>	 	</p>
+<p>	起初只有黑暗和寂静。然后，一种极其低沉、几乎低于听觉阈值的震动感从手背传来，顺着骨骼传到耳蜗。不是声音，是体感。	</p>
+<p>	 	</p>
+<p>	渐渐地，那震动感开始分化，变得有节奏，有层次。我“听”到了——不是用耳朵——那地下结构的脉冲，缓慢、有力，像巨兽沉睡中的心跳。在这主脉冲之上，叠加着无数更细微的、更快速的谐波，像是窃窃私语，像是数据传输的嗡鸣。	</p>
+<p>	 	</p>
+<p>	我努力集中精神，试图从那片混沌的“声音之海”中分辨出什么。没有语言，没有形象，只有纯粹的、复杂到令人发狂的模式。旋转的几何，流淌的色彩（不是视觉的色彩，是感知的色彩），交替的收缩与舒张……	</p>
+<p>	 	</p>
+<p>	然后，在那片模式的深处，我再次捕捉到了那句话。这一次，它不是被“听”到，而是直接被“知晓”，像一条不言自明的公理，突然出现在意识的中央：	</p>
+<p>	 	</p>
+<p>	“个体性是暂时的噪声。整合是永恒的旋律。”	</p>
+<p>	 	</p>
+<p>	随之而来的，是一种强烈的、几乎无法抗拒的吸引力。不是对具体事物的渴望，而是对“融入”、对“成为那宏大模式一部分”的深沉向往。孤独、恐惧、困惑……这些人性的负担，在那旋律面前显得如此渺小、如此可笑。只要放弃抵抗，只要让自己被那旋律包裹、重组，就能获得前所未有的平静与完整。	</p>
+<p>	 	</p>
+<p>	我的呼吸停止了。心脏狂跳。手环发出尖锐的警报，红光在黑暗中闪烁。	</p>
+<p>	 	</p>
+<p>	我猛地睁开眼睛，大口喘气，像是从深水中挣扎浮出。汗水浸透了全身。右手手背的纹路发出明亮的、持续了几秒钟的绿色荧光，才缓缓暗淡下去。	</p>
+<p>	 	</p>
+<p>	警报声引来了巡逻的警卫。门外传来询问声。我嘶哑着喉咙回应：“做噩梦了，没事。”	</p>
+<p>	 	</p>
+<p>	警卫离开后，我瘫坐在床上，浑身发抖。不是害怕，而是后怕。就在刚才，在那旋律的诱惑下，我差一点……就松开了手。差一点就主动拥抱了那种“整合”。	</p>
+<p>	 	</p>
+<p>	人性的防线，比我想象的更加脆弱。而那旋律，比任何酷刑都更懂得如何瓦解它——不是通过痛苦，而是通过许诺一个没有痛苦的、终极的“答案”。	</p>
+<p>	 	</p>
+<p>	我看向黑暗中的手。纹路已经看不见了，但我能感觉到它们的存在，像皮肤下安静燃烧的余烬。	</p>
+<p>	 	</p>
+<p>	我摸索着打开台灯，翻开笔记本。手还在颤抖，字迹歪斜：	</p>
+<p>	 	</p>
+<p>	“第七天。我，还记得我是谁。主动连接尝试。听到了‘旋律’。感受到了‘整合’的诱惑。	</p>
+<p>	 	</p>
+<p>	个体性是噪声。整合是旋律。	</p>
+<p>	 	</p>
+<p>	我必须记住：噪声也有其价值。混乱、矛盾、孤独、爱、愤怒……这些‘噪声’，是我之为‘我’的证明。	</p>
+<p>	 	</p>
+<p>	如果我连噪声都失去，我将成为旋律中一个无声的音符——存在，却从未活过。”	</p>
+<p>	 	</p>
+<p>	写到这里，我停顿了一下，然后用力划掉了最后一句，重新写道：	</p>
+<p>	 	</p>
+<p>	“不。如果我失去噪声，我就死了。活着的，将是一个顶着我的名字、我的记忆外壳的……别的东西。”	</p>
+<p>	 	</p>
+<p>	合上笔记本，我把它紧紧抱在胸前，像抱住最后一块浮木。	</p>
+<p>	 	</p>
+<p>	窗外的概念不存在，这里没有窗户。只有永恒的、无情的灯光，和地下深处传来的、越来越清晰的、关于森林的旋律。	</p>
+<p>	 	</p>
+<p>	我知道，我抵抗不了多久了。	</p>
+<p>	 	</p>
+<p>	但在那之前，我要尽可能多地，制造一些“噪声”。	</p>
+<p>	 	</p>
+<p>	沈教授消失后的第五天，地下三层的寂静开始带有别的意味。那不是安宁，而是一种紧绷的、等待另一只靴子落下的死寂。分析员们在走廊里相遇时，眼神接触的时间变得更短，点头的弧度更微妙，仿佛彼此都成了潜在的污染源或告密者。空气中弥漫着一种心照不宣的恐惧：谁是下一个？	</p>
+<p>	 	</p>
+<p>	我的纹路已经蔓延到手腕，并向小臂延伸了一小段。它们现在在正常光线下也能看到淡淡的青灰色痕迹，像最精致的刺青，却又带着生物脉络的诡异生动。我学会了在公共场合刻意保持左手活动，让右手自然垂落或插在口袋里。但我知道，这种伪装持续不了多久。许海洋被带走时，据说掌心的纹路已经像烙印一样凸起。	</p>
+<p>	 	</p>
+<p>	工作成了我唯一的掩体和麻醉剂。我沉迷于分析根系脉冲与全球微震的关联数据，试图从中找出数学规律，或者说，找出种子的“意图”。这让我看起来像是个敬业到偏执的科学家，而非一个正在从内部被改造的怪物。	</p>
+<p>	 	</p>
+<p>	但私下里，我开始了更危险的尝试。沈教授的录音里提到“记忆残留可能形成缓冲”，但也警告“深度记忆唤起可能加速谐波同步”。这是一个致命的平衡游戏：我需要用记忆锚定“自我”，但又不能触发种子谐波过强的共振。	</p>
+<p>	 	</p>
+<p>	深夜，当监控可能松懈时（我怀疑监控从未松懈，这只是一种心理安慰），我会取出笔记本，在空白页上写下任何还能想起的、属于“赵明远”而非“感染者09号”的细节。琐碎的、无关紧要的细节：	</p>
+<p>	 	</p>
+<p>	妻子泡茶时，喜欢先用热水温杯，她说这样茶香不会冷掉。	</p>
+<p>	 	</p>
+<p>	母校图书馆三楼东侧靠窗的座位，下午阳光会穿过梧桐叶，在书页上投下晃动的光斑。	</p>
+<p>	 	</p>
+<p>	第一次独立设计实验成功时，打翻了一杯咖啡，报告纸上留下了褐色的渍迹，被导师笑骂。	</p>
+<p>	 	</p>
+<p>	X喜欢在思考时啃铅笔头，他的铅笔总是伤痕累累。	</p>
+<p>	 	</p>
+<p>	写着写着，有时会突然卡壳。关于妻子的记忆，有些画面变得模糊，需要用力挖掘才能浮现。而关于X的记忆，除了那些惯常的“事实”碎片，任何带有情感色彩或具体场景的细节，都像浸了水的墨迹，越来越淡。我知道，种子在优先清除与它直接相关的“异常节点”，而X是这个节点的核心。	</p>
+<p>	 	</p>
+<p>	更令人不安的是，我开始注意到思维中出现了“空白跳跃”。比如，正想着数据分析的一个步骤，突然就跳到了根系结构的某种分形特性，中间的逻辑链条缺失了，仿佛思维被预设的“快捷方式”劫持。又或者，在想起某些人类情感概念时，比如“悲伤”或“喜悦”，内心会泛起一种疏离的、近乎学术性的好奇，像在观察另一个物种的行为模式。	</p>
+<p>	 	</p>
+<p>	那天下午，我正在整理一份关于种子外壳材料自修复机制的报告，终端突然收到一条加密级别极高的信息，来自一个匿名内部地址。内容只有一串坐标和一句话：“B-3仓库，废弃样本储存区，23:00。独自。关于沈。”	</p>
+<p>	 	</p>
+<p>	我的心猛地一缩。B-3仓库在地下四层，属于更低安全级别的仓储区，但对我来说是未授权区域。手环会报警。这是一个陷阱吗？清除派终于要对我动手了？还是……沈教授留下的联络人？	</p>
+<p>	 	</p>
+<p>	我盯着那句话。“关于沈。” 沈教授现在生死不明，任何关于他的信息都可能至关重要。也可能是诱饵。	</p>
+<p>	 	</p>
+<p>	犹豫了几个小时，在22:50分，我做出了决定。我无法再忍受被动等待。我需要信息，需要同类，哪怕风险是毁灭。	</p>
+<p>	 	</p>
+<p>	我找到一个机会——利用终端对数据服务器的例行备份请求，制造一段短暂的、可控的网络延迟（这得益于我对旧系统漏洞的了解）。在监控系统因数据流异常可能产生毫秒级处理延迟的间隙（这只是理论上的可能），我快速拆下了手环。	</p>
+<p>	 	</p>
+<p>	手环脱离手腕的瞬间，内部微型警报确实启动了，发出一声几乎听不见的高频嘀声，但我已经将它塞进了早就准备好的、内衬信号屏蔽布的小铅盒里（这是从废弃的放射性样本盒里拆出来的零件改装的）。铅盒合上，警报声闷在里面。手环失去生物接触和定位信号，最终会触发安全协议，但理论上会有几分钟的缓冲时间，系统会先尝试重新连接和定位。	</p>
+<p>	 	</p>
+<p>	我需要在这几分钟内到达B-3仓库并返回。	</p>
+<p>	 	</p>
+<p>	我溜出房间，走廊空无一人。脚步声被吸音材料吞噬。我按照记忆中的地图，快速走向通往地下四层的货运通道。那里通常有电子锁，但我用一张从旧设备上偷偷复制的通用维修卡（权限极低，但能在系统特定维护模式下开启一些次级通道）刷开了安全门。	</p>
+<p>	 	</p>
+<p>	地下四层更冷，灯光更暗，弥漫着灰尘和旧金属的气味。B区仓库排列着高大的货架，上面堆满了蒙尘的仪器箱、淘汰的设备部件和标记着“待处理”的样本容器。空气里有淡淡的防腐剂和锈蚀的味道。	</p>
+<p>	 	</p>
+<p>	B-3仓库在尽头。门虚掩着，里面没有灯光。	</p>
+<p>	 	</p>
+<p>	我推开门，里面一片漆黑。只有远处安全出口标志微弱的绿光，勾勒出堆积如山的杂物轮廓。	</p>
+<p>	 	</p>
+<p>	“我来了。”我低声说。	</p>
+<p>	 	</p>
+<p>	黑暗中，一个身影从货架后缓缓走出。借着绿光，我认出那是医疗中心的林医生。但她看起来和之前完全不同：头发有些凌乱，白大褂皱巴巴的，脸上带着浓重的疲惫和紧张。她的左手紧紧抓着一个不起眼的金属手提箱。	</p>
+<p>	 	</p>
+<p>	“赵博士，你拆了手环？”她声音急促，“你只有不到五分钟时间。”	</p>
+<p>	 	</p>
+<p>	“是你找我？关于沈教授？”	</p>
+<p>	 	</p>
+<p>	“沈教授还活着，但被转移到了最高级别的隔离病房，处于药物诱导昏迷状态。”林医生语速很快，“清除派认为他的‘污染’已进入晚期，且有意识地进行危险研究。他们准备……对他进行‘认知剥离’实验。”	</p>
+<p>	 	</p>
+<p>	“那是什么？”我感到一阵寒意。	</p>
+<p>	 	</p>
+<p>	“一种尚在实验阶段的技术，用高强度谐波场反向冲刷大脑，试图‘洗掉’种子转录的信息结构。”林医生眼神中闪过一丝恐惧，“但风险极高，可能造成不可逆的脑损伤，甚至……人格抹除。他们认为与其让感染者变成未知的东西，不如冒险摧毁被污染的部分。”	</p>
+<p>	 	</p>
+<p>	“疯子……”我喃喃道。	</p>
+<p>	 	</p>
+<p>	“他们是害怕。”林医生靠近一步，压低声音，“种子根系的活动出现了新变化。不只是微震关联。我们监测到，在根系密集的区域，地下水的化学成分正在发生微妙改变，PH值降低，溶解了更多特定的矿物质和稀土元素，这些元素被根系吸收、输送回种子主体。同时，种子外壳……在‘开花’。”	</p>
+<p>	 	</p>
+<p>	“开花？”我想起沈教授最后的话。	</p>
+<p>	 	</p>
+<p>	林医生打开手提箱，里面是一台加固的平板电脑。她调出一段热成像和光谱分析合成的视频。画面上，种子外壳表面，那些原本缓慢脉动的纹路，正在变得更加活跃。在某些节点，外壳材料微微隆起，形成一个个花苞状的凸起。凸起顶端，有极其微弱的、多波段的光辐射溢出，光谱特征与核心白光类似，但更复杂。	</p>
+<p>	 	</p>
+<p>	“这不是生物学意义上的开花，更像是……信息结构的‘外显’或‘弥散’。”林医生指着数据，“这些‘花苞’释放的信息场强度，是核心区域的千分之一，但覆盖范围更广，而且频率在不断调整，似乎在寻找与周围环境的最佳耦合方式。更重要的是……”	</p>
+<p>	 	</p>
+<p>	她切换画面，显示出一组脑波监测数据对比图。一组是未暴露人员的基线，一组是轻微记忆异常人员，一组是纹路明显者（包括我），最后一组，是暴露在“花苞”辐射场边缘的执勤士兵（尽管他们穿着防护服）的短期监测结果。	</p>
+<p>	 	</p>
+<p>	“看最后这组，”林医生的手指点着屏幕，“仅仅四十八小时的低剂量暴露，他们的脑波背景中就开始出现‘谐波’雏形，虽然强度极弱，但模式一致。种子不需要直接接触核心了。它的‘影响’正在通过这种‘开花’过程，扩散到更远的范围。防护服能阻挡已知的物理和生物危害，但对这种信息场……效果有限。”	</p>
+<p>	 	</p>
+<p>	我看着那对比图，感到一阵眩晕。感染在空气传播。也许，整个隔离区，甚至更远的地方，都已经暴露在低剂量的“转化场”中。只是大多数人还未出现明显症状。	</p>
+<p>	 	</p>
+<p>	“清除派知道这个吗？”我问。	</p>
+<p>	 	</p>
+<p>	“知道一部分。所以他们更急于控制‘源头感染者’，并开始讨论……更激进的隔离方案。”林医生看着我，眼神复杂，“包括可能对种子本体，实施战术核打击。”	</p>
+<p>	 	</p>
+<p>	“什么？！”我几乎喊出来，“那会引发不可预测的地质灾难，甚至可能将种子的碎片和信息场抛射到全球！”	</p>
+<p>	 	</p>
+<p>	“他们认为，在根系遍布范围尚可控制、种子‘开花’尚未完成时，是最后的机会。总比坐等整个世界被慢慢‘转化’要好。”林医生合上手提箱，“郑将军在极力反对，但他承受的压力越来越大。军方和政界高层，恐惧正在压倒理性。”	</p>
+<p>	 	</p>
+<p>	“你为什么要告诉我这些？你是医疗主管，你应该站在‘控制’一边。”我盯着她。	</p>
+<p>	 	</p>
+<p>	林医生沉默了一下，然后缓缓卷起了自己左臂的袖口。	</p>
+<p>	 	</p>
+<p>	在她的前臂内侧，皮肤光滑。没有纹路。	</p>
+<p>	 	</p>
+<p>	但当她将手臂侧转，在某种角度的光线下，我看到皮肤下隐约有极其细微的、类似毛细血管的网状阴影，但那网格的排布方式，太过规则，绝非自然。	</p>
+<p>	 	</p>
+<p>	“我没有明显的纹路，谐波强度也很低。”她低声说，“但我有‘视觉畸变’。有时看东西，边缘会泛起细微的、几何化的光晕。看文字时，偶尔会觉得笔画在微微蠕动、重组。我知道我也被影响了，只是程度不同。沈教授……他信任我，告诉我了他的研究和担忧。现在他倒下了，我必须做点什么。”	</p>
+<p>	 	</p>
+<p>	她抓住我的胳膊，力道很大：“赵博士，你是目前已知的记忆残留最明显、且尚未完全失控的感染者。沈教授的理论，你的‘记忆锚点’，可能是理解这种‘转化’机制，甚至寻找非暴力干预方法的关键。但清除派不会给你时间。他们随时可能把你列入‘高风险名单’。”	</p>
+<p>	 	</p>
+<p>	“我能做什么？在这里，我连自己的房间都出不去。”我感到一阵无力。	</p>
+<p>	 	</p>
+<p>	“你需要更多数据。你需要看到‘花苞’的原始信号，需要分析它与人类神经活动的实时互动数据。”林医生从口袋里掏出一个微型数据棒，塞进我手里，“这是我能弄到的、最高权限的实时监测数据接入密钥（伪装成医疗设备校准模块）。还有一份沈教授未完成的‘认知锚定训练’协议草案。理论上，通过特定模式的记忆强化和思维训练，或许能增强认知结构的稳定性，对抗谐波的同步化。”	</p>
+<p>	 	</p>
+<p>	她看了一眼手表：“你必须回去了。手环丢失很快会被发现。这个仓库的监控已经被我暂时用旧病历查询请求堵塞了通道，但撑不了多久。”	</p>
+<p>	 	</p>
+<p>	“你为什么冒险帮我？”我握紧冰冷的数据棒。	</p>
+<p>	 	</p>
+<p>	“因为如果清除派赢了，他们会用核弹解决科学问题，然后在一片废墟和辐射中，面对他们根本无法理解的后果。”林医生眼神坚定，“也因为，如果种子赢了……我希望至少有人类，是以清醒的、抗争过的姿态，被‘转化’的。而不是在无知无觉中，变成了森林里一棵忘了自己曾是种子的树。”	</p>
+<p>	 	</p>
+<p>	她推了我一把：“快走！”	</p>
+<p>	 	</p>
+<p>	我转身冲出门，沿着来路狂奔。心脏在胸腔里狂跳，仿佛要炸开。回到地下三层，溜回房间，关上门的瞬间，我听到走廊远处传来急促的脚步声和询问声。安全人员正在排查手环异常。	</p>
+<p>	 	</p>
+<p>	我迅速将铅盒里的手环重新戴上。几乎同时，房门被敲响。	</p>
+<p>	 	</p>
+<p>	打开门，是两名全副武装的安全人员，脸色严肃。	</p>
+<p>	 	</p>
+<p>	“赵明远博士，您的生命监测手环在23:05至23:12之间失去信号。请解释。”其中一人说道，手按在腰间的配枪上。	</p>
+<p>	 	</p>
+<p>	“抱歉，”我尽量让声音显得困倦而不耐烦，“可能是接触不良。我洗手时可能弄湿了接口，后来擦了擦，重新戴紧就好了。”我展示了一下手腕，手环正常工作，绿灯闪烁。	</p>
+<p>	 	</p>
+<p>	另一人拿着手持扫描仪，对我全身和房间快速扫描了一遍，重点检查了铅盒（我早已将里面的屏蔽布取出藏好）。扫描仪没有异常。	</p>
+<p>	 	</p>
+<p>	两人对视一眼，显然不完全相信，但也没有证据。	</p>
+<p>	 	</p>
+<p>	“博士，请确保手环佩戴良好。任何异常都必须立即报告。这是为了您的安全。”他们警告后离开了。	</p>
+<p>	 	</p>
+<p>	门关上，我背靠着门板，缓缓滑坐在地上，冷汗这才后知后觉地涌出。太近了。	</p>
+<p>	 	</p>
+<p>	平静下来后，我查看林医生给的数据棒。里面除了密钥和协议草案，还有一个加密的日志文件，记录了她偷偷观察到的一些事情：几位低阶研究人员出现轻微记忆混淆后被迅速调离；仓库里某些早期采集的种子外壳碎片样本，显示出自发的微弱光脉动，与主体“花苞”频率同步；以及，她怀疑隔离区的通风系统中，可能被秘密添加了某种神经稳定剂（或相反，某种促进“同步”的药剂），以控制感染者的情绪和认知变化速度。	</p>
+<p>	 	</p>
+<p>	疑云重重，每一步都可能是陷阱。	</p>
+<p>	 	</p>
+<p>	但我没有退路了。我接入密钥，开始接收实时数据流。屏幕上，种子的全息模型旋转着，标注出几十个正在活跃的“花苞”热点。它们的辐射模式像一首不断变奏的、复杂的交响乐，而全球地震监测网、地磁监测站、甚至一些民用无线电波背景噪声数据，都显示出了与这首“交响乐”微妙的相关性。	</p>
+<p>	 	</p>
+<p>	种子在调谐地球。将它变成一个巨大的共鸣箱。	</p>
+<p>	 	</p>
+<p>	而我手背上的纹路，在数据流刷新的特定频率下，再次泛起微光。这一次，我没有恐惧，而是感到一种冰冷的决心。	</p>
+<p>	 	</p>
+<p>	我打开沈教授的“认知锚定训练”协议。里面是一系列的心理练习：通过高度细节化的感官回忆、情感重温、逻辑链条的刻意构建，来强化特定记忆节点和思维模式的神经连接强度，使其更能抵抗外部谐波的“重组”吸引力。	</p>
+<p>	 	</p>
+<p>	我选择了一个锚点：和妻子在校园初遇的那个秋日下午。阳光的温度，梧桐叶的气味，她裙角的颜色，对话时微微的紧张，心跳的节奏……我闭上眼睛，尽可能细致地重现每一个细节，调动所有的感官和情感记忆。	</p>
+<p>	 	</p>
+<p>	起初很难，记忆像隔着一层雾。但随着我反复努力，画面逐渐清晰，情感重新泛起温暖的涟漪。有趣的是，当我沉浸在这种纯粹的人类记忆和情感中时，手背纹路的光芒明显黯淡下去，几乎消失。	</p>
+<p>	 	</p>
+<p>	反之，当我思考种子数据时，纹路便亮起。	</p>
+<p>	 	</p>
+<p>	这证实了沈教授的猜测：记忆锚定和特定的思维模式，确实可以影响“转化”进程。	</p>
+<p>	 	</p>
+<p>	但我也知道，这只是暂时的。种子的谐波无处不在，它的“旋律”越来越强大，而我一个人的“噪声”，能坚持多久？	</p>
+<p>	 	</p>
+<p>	深夜，我再次尝试“聆听”。这一次，我有了密钥提供的更精准的频率引导。	</p>
+<p>	 	</p>
+<p>	意识下沉，顺着纹路的共振，向下，向下。地下结构的脉搏比以前更清晰，更强劲。那“整合的旋律”也更加完整，充满了难以言喻的、冰冷而宏伟的“美感”。它许诺的平静与完整，像深海一样诱惑着疲惫的灵魂。	</p>
+<p>	 	</p>
+<p>	但这一次，当那诱惑袭来时，我紧紧地抓住了我的“锚点”——秋日阳光的温度，妻子眼睛里的笑意，还有X啃着铅笔头、眼中闪烁着疯狂科学火光的那个侧影（尽管依然没有面容）。这些属于“赵明远”的、混乱的、充满“噪声”的记忆碎片，像一颗颗粗糙的石头，坠入那平滑的旋律之海，激起小小的、不和谐的涟漪。	</p>
+<p>	 	</p>
+<p>	旋律出现了一丝几乎无法察觉的……扰动？或者说，困惑？	</p>
+<p>	 	</p>
+<p>	它无法理解这种“噪声”。在它的“最优态”里，没有这种无意义的、矛盾的情感羁绊，没有这种对“不完美个体性”的顽固眷恋。	</p>
+<p>	 	</p>
+<p>	我趁此机会，将意识更深地探向那旋律的“源头”，试图感知其背后的“意图”。没有语言，没有形象，只有庞大的、非人的“目的性”。我“看”到（感知到）一个蓝图，一个将整个星球生态系统、地质结构、乃至可能的大气环流和电磁场，重新编织成一个统一的、自洽的、高效的能量-信息-物质循环网络的蓝图。在这个网络里，每一个部分都完美适配，没有浪费，没有冲突，没有“自我”。人类文明及其产物，被视为一种暂时性的、低效的、充满“噪声”的中间态，需要被“整合”与“优化”。	</p>
+<p>	 	</p>
+<p>	森林，只是一个粗浅的比喻。这是将星球变成一件活体艺术品，或者一台巨型生物机器。	</p>
+<p>	 	</p>
+<p>	而人类意识，只是其中需要被“格式化”然后“重装系统”的旧有程序。	</p>
+<p>	 	</p>
+<p>	我感到一阵巨大的虚无和荒谬。我们所有的恐惧、抗争、爱恨、文明，在这样一个宏伟、冷漠、非人的“目的”面前，显得如此微不足道，如此……可笑。	</p>
+<p>	 	</p>
+<p>	就在我的意识即将被这种虚无感吞没，准备放弃抵抗时，另一段“记忆”碎片，突然强硬地闯入——不是我的记忆，但它通过纹路的共振，隐隐传递过来。那是许多声音、许多感受的碎片混合：绝望的挣扎，无声的呐喊，最后的眷恋，以及……一丝微弱但尖锐的、不肯屈服的愤怒。	</p>
+<p>	 	</p>
+<p>	是其他感染者。是沈教授？是许海洋？还是更早的、未知的牺牲者？他们在被“整合”的最后时刻，残留的精神印记，像漂流瓶一样，被困在了这庞大的旋律信息场中。	</p>
+<p>	 	</p>
+<p>	这些“噪声”的碎片，比我个人的记忆更加混乱、更加痛苦，但也更加……真实。它们证明了，即使在这个碾压一切的宏伟蓝图面前，曾经有个体，以他们的方式，存在过，抵抗过。	</p>
+<p>	 	</p>
+<p>	这微不足道的证明，却像一根细小的刺，扎进了我即将放弃的灵魂。	</p>
+<p>	 	</p>
+<p>	我猛地将意识抽回，剧烈地喘息，像是差点溺毙的人。手背纹路的光芒剧烈闪烁了几次，然后慢慢平息。	</p>
+<p>	 	</p>
+<p>	我颤抖着手，翻开笔记本。这一次，我没有写关于种子或转化的任何事。我只是画下了一缕扭曲的阳光，一片梧桐叶的轮廓，还有一个没有脸的、叼着铅笔的侧影。	</p>
+<p>	 	</p>
+<p>	然后，在下面写上：	</p>
+<p>	 	</p>
+<p>	“第十一天。我，我听到了更多‘噪声’。它们来自沉没者。	</p>
+<p>	即使森林终将覆盖一切，我也要记住：这里曾有过不愿成为树木的人。	</p>
+<p>	明天，我要开始制造更大的噪声。”	</p>
+<p>	 	</p>
+<p>	我不知道具体要做什么。但我知道，沉默的接受，就是死亡。	</p>
+<p>	 	</p>
+<p>	而只要还能制造一点“噪声”，无论多么微弱，就证明我还活着。	</p>
+<p>	 	</p>
+<p>	窗外（概念上的），地下深处的旋律，依旧永恒地吟唱着。	</p>
+<p>	 	</p>
+<p>	但在这个隔离的房间，一个人类，准备开始他徒劳而伟大的，制造“噪声”的计划。	</p>
+<p>	 	</p>
+<p>	认知锚定训练成了我新的每日仪式，同时也是一种隐秘的反抗。在数据监测的间隙，在视频会议的木然表象下，我的意识在另一个维度进行着无声的拉锯战。	</p>
+<p>	 	</p>
+<p>	林医生给的协议比我想象的更系统，也更痛苦。它要求我不仅要回忆，还要重建——用尽可能多的感官细节和情感维度，去加固那些记忆的神经结构。我开始系统性地整理记忆碎片，像考古学家清理脆弱的骨骸。	</p>
+<p>	 	</p>
+<p>	我制作了一张表格，记录每天练习的“锚点记忆”、投入程度、练习后纹路的光反应强度，以及随之而来的、难以言喻的精神状态变化。	</p>
+<p>	 	</p>
+<p>	锚点A：与妻子的初遇。 这是最温暖，也最难维持的锚点。秋日阳光的温度容易想象，但当她模糊的面容试图清晰时，总有一种无形的阻力，仿佛有层薄纱在阻止我“看清”。我不得不专注于其他细节：她发梢沾染的淡淡桂花香（那是校园里老桂树的味道），她说话时右手下意识捻动书包带的小动作，她耳垂上一颗极小的、褐色的痣。情感上，我努力重温那种混合着好奇、笨拙的吸引力和青春特有的、对未来毫无根据的乐观。练习结束时，手背纹路几乎完全黯淡，但一种深沉的疲惫和悲伤会笼罩我——因为我知道，无论我多么努力，那个下午和那个人，都已永远逝去。记忆越清晰，失去感就越尖锐。	</p>
+<p>	 	</p>
+<p>	锚点B：第一次独立实验成功。 这是关于专业成就和自我肯定的记忆。咖啡的焦糊味，纸张被浸湿的触感，导师看似责备实则欣慰的眼神，还有那股从胸腔升腾起来的、炽热的自豪感。这个锚点相对容易维持，因为它与理性、逻辑相关。但练习时，我有时会分神，不自觉地用种子数据的逻辑去“优化”那个早已过时的实验设计。当我意识到这一点时，会感到一阵寒意。种子的“优化”逻辑，正在污染我最引以为傲的科学思维。	</p>
+<p>	 	</p>
+<p>	锚点C：与X的最后一次非工作对话。 这是个极其困难的锚点，因为它与种子直接关联，且X的面容和名字是缺失的。我只能围绕那个夜晚的“感觉”进行重建：研究室窗外淅沥的夜雨声，空气中灰尘和旧电路板的味道，他低沉笑声引起的共鸣感，以及他提到某个理论时眼中闪烁的、近乎癫狂的光芒（那光芒的形状和颜色，我只能用“像低温火焰”来形容）。这个锚点练习时，纹路的反应最不稳定：有时会剧烈发光，伴随轻微的头痛和幻听（总是那种多声部的嗡鸣）；有时却又异常安静。这证实了沈教授的警告：挖掘与种子相关的深层记忆，是危险的赌博。	</p>
+<p>	 	</p>
+<p>	除了这些固定的锚点，我还开始记录“随机噪声”——日常生活中突然涌现的、与种子完全无关的微小记忆或冲动：比如今天早餐时突然想起童年养过的一只蟋蟀的叫声；比如对某个分析员无意中哼出的一段老歌调子产生莫名的怀念；甚至包括偶尔涌起的、对单调食物或封闭环境的烦躁。这些“噪声”微不足道，但我视若珍宝。它们是“赵明远”这个系统仍在自主运行的证明，哪怕只是随机的熵增。	</p>
+<p>	 	</p>
+<p>	我的笔记开始变得杂乱，充满了个人化的符号、潦草的情绪记录和看似无意义的观察。我知道，任何审查者看到这些，都会更加确信我的“不稳定”。但这正是我要的——一个混乱的、难以被“整合”的思维生态。	</p>
+<p>	 	</p>
+<p>	与此同时，通过林医生的密钥，我持续监控着外部的风暴。	</p>
+<p>	 	</p>
+<p>	种子的“开花”进程显著加速。热成像图上，原先数十个花苞热点，一周内增加了三倍，并且开始从种子主体向外围的根系网络节点扩散。一些早期花苞已经开始“绽放”——外壳隆起处裂开细微的缝隙，释放出更复杂的混合辐射。这些辐射的频段与人类脑电波的某些频段重叠区域越来越大。	</p>
+<p>	 	</p>
+<p>	一份被标记为“内部参考”的生理监测报告显示，隔离区外围执勤的士兵，即使轮换频繁，出现轻度头痛、短期记忆模糊和“梦境异常”的比例，在过去十天上升了百分之四十。报告结论将其归因为“长期封闭环境心理压力”，但我看到数据图表中，症状发生率曲线与“花苞”辐射强度的增长曲线，存在令人不安的同步上升趋势。	</p>
+<p>	 	</p>
+<p>	清除派显然得到了这些数据。高层会议记录显示，主张“积极干预”的声音已经压过了“持续观察”。一个代号为“除草剂”的行动方案正在被细化。方案A：使用钻地战术核弹头，在根系网络的关键节点进行“外科手术式”清除，试图瘫痪其信息-能量传输主干。方案B：对种子主体实施大当量空爆，寄望于瞬间的超高能量流能“重置”或摧毁其核心信息结构。两个方案都承认，无法完全清除可能已扩散的信息场污染，但目标是“打断进程，争取时间”。	</p>
+<p>	 	</p>
+<p>	郑将军是少数坚定的反对者。他在一次会议上的发言片段被记录：“我们面对的不是机器，拆掉主板就能停机。它是一个生命-信息复合体，其生存模式可能远超我们理解。暴力打断可能引发不可预测的‘应激反应’——比如，加速信息场的弥散，或者激活我们尚未察觉的防御或繁殖机制。我们是在用火柴探索炸药库。”	</p>
+<p>	 	</p>
+<p>	但恐惧的浪潮很难阻挡。一份标注为“绝密-阅后即焚”的名单流传出来，上面列出了“优先控制与研究的深度感染者”。我的名字在第三位，后面跟着评估：“记忆残留明显，认知纹身进展中等，行为出现孤僻与偏执倾向，研究价值高。”沈教授的名字在第一位，状态标注为“已控制，进行中”。许海洋在第五位，“情绪不稳定，纹身进展快，研究价值中”。	</p>
+<p>	 	</p>
+<p>	我知道，时间不多了。	</p>
+<p>	 	</p>
+<p>	一个阴沉的“下午”，林医生通过医疗检查的例行程序，给我带来了一小瓶无色无味的药片。“口服的神经稳定剂改良型，”她低声说，眼神示意监控死角，“能轻微提升血清素和特定神经肽水平，理论上可以增强情绪稳定性和认知连贯性，可能对锚定训练有辅助作用。副作用是可能导致嗜睡和反应略微迟钝。” 她顿了顿，“也是目前清除派默许给‘高风险’人员使用的化学约束手段之一。自愿服用，但‘建议’强烈。”	</p>
+<p>	 	</p>
+<p>	我接过药瓶。这是双刃剑。它可能帮我稳定情绪以更好地抵抗，也可能让我变得温顺易于控制，甚至其化学成分可能有意无意地促进与谐波的“兼容性”。但我没有选择。我需要一切可能的工具。	</p>
+<p>	 	</p>
+<p>	那天晚上，在服下一片药后，我进行了迄今为止最深度的锚点C练习。药效带来一种奇异的平静，仿佛情绪被罩上了一层透明的薄膜。回忆变得清晰，痛苦变得遥远。	</p>
+<p>	 	</p>
+<p>	我回到了那个雨夜。雨声细密，研究室里只有我们两人。X背对着我，站在白板前，上面画满了难以理解的符号和连接线。	</p>
+<p>	 	</p>
+<p>	“……它不思考，赵。” 他的声音传来，依然没有面容，但语气中的兴奋和忧虑无比真实，“它定义。它掉落在这里，不是意外，是这片时空符合它的某个……‘定义条件’。然后它开始执行定义程序：将不符合定义的部分，转化为符合定义的。就像水填入坑洞，理所当然。”	</p>
+<p>	 	</p>
+<p>	“定义成什么？”	</p>
+<p>	 	</p>
+<p>	“一个完整的、自洽的系统。没有浪费，没有矛盾。个体性……是系统中的‘缺陷’，是需要被平滑掉的‘噪声’。” 他转过身，那个模糊的轮廓微微晃动，“但我们就是由噪声构成的，伙计。我们的混乱，我们的矛盾，我们的爱恨……那是活着的证据。如果失去了这些……”	</p>
+<p>	 	</p>
+<p>	他的声音低下去，然后，在记忆的这一刻，他做了一个我此前从未记起的动作：他抬起手，用手指在空中虚划了一个复杂的、非欧几里得几何图形，然后猛地将其“擦除”。	</p>
+<p>	 	</p>
+<p>	“……那就成了它系统里，一个完美的、无声的零件。”	</p>
+<p>	 	</p>
+<p>	记忆画面到此中断。但我手背上的纹路，却在这一刻爆发出前所未有的明亮绿光，光芒甚至透过了我的指缝。与此同时，一种强烈的、非我的“感知”洪流顺着纹路倒灌进来。	</p>
+<p>	 	</p>
+<p>	不再是地下的脉搏旋律。而是一个“场景”，一个由纯粹信息构成的、关于“定义”的场景：	</p>
+<p>	 	</p>
+<p>	我看见无数纤细的光丝，从种子中伸出，探入周围的环境——土壤、岩石、空气、微生物、偶尔闯入的小动物……以及最初的研究站。光丝缠绕上每一样东西，瞬间解析其结构、成分、状态，然后开始进行微妙的调整。岩石的晶体排列被优化以增强共振传导；土壤微生物的代谢路径被调整以产生特定的化学信号；空气流动被引导以形成稳定的涡旋，承载信息粒子……	</p>
+<p>	 	</p>
+<p>	而当一个穿着防护服的研究员靠近时，光丝同样缠绕上去。它们穿透防护服，探入他的身体，扫描神经结构、生化反应、记忆编码……然后，开始进行“定义”。	</p>
+<p>	 	</p>
+<p>	我看到他的恐惧、疑惑、好奇……这些混乱的电化学信号，被光丝轻柔地“梳理”、“重组”。恐惧被转化为对“系统稳定性”的关注，疑惑被转化为对“结构优化”的探究，好奇被转化为对“整合进程”的期待。他的个人记忆被抽离、打散，像一本被拆成单页的书，有用的信息被分类归档，融入一个更大的、共享的“信息库”，而无用的、个人化的情感记忆，则被标记为“冗余噪声”，准备擦除。	</p>
+<p>	 	</p>
+<p>	整个过程安静、高效、非暴力，带着一种冰冷到极致的“理性美感”。这不是杀戮，是翻译——将一个自由、混乱、充满噪声的“文本”，翻译成一个符合宏大叙事的、精准、简洁、无矛盾的“注脚”。	</p>
+<p>	 	</p>
+<p>	而那个研究员，在这个过程中，脸上逐渐失去了所有情绪波动，眼神变得空洞而专注，最终，他主动走向种子核心，融入了那片白光，成为庞大光结构上一个新生的、同步闪烁的节点。	</p>
+<p>	 	</p>
+<p>	这就是X经历的，也是所有深度感染者正在经历的。	</p>
+<p>	 	</p>
+<p>	“定义”的场景褪去，我瘫坐在椅子上，浑身被冷汗湿透，剧烈地干呕。手背纹路的光芒缓缓熄灭，留下一片灼热感。药片带来的平静被彻底粉碎，取而代之的是深入骨髓的恐惧和……愤怒。	</p>
+<p>	 	</p>
+<p>	原来这就是“整合”。不是粗暴的吞噬，而是精密的、不可抗拒的“合理化”。它不否定你的存在，它只是重新定义你存在的意义，直到你欣然接受自己成为宏大蓝图中的一个功能性部件。	</p>
+<p>	 	</p>
+<p>	比起死亡，这更令人绝望。	</p>
+<p>	 	</p>
+<p>	但我心中的那点愤怒，却像黑暗中擦出的火星。它们要抹除“噪声”？它们要把独一无二的个体生命翻译成标准化的注脚？	</p>
+<p>	 	</p>
+<p>	不。	</p>
+<p>	 	</p>
+<p>	我擦掉嘴角的生理性泪水，打开笔记本。手还在抖，字迹歪斜：	</p>
+<p>	 	</p>
+<p>	“第十六天。目睹了‘定义’。精密的恐怖。	</p>
+<p>	我不是零件。我的记忆不是冗余数据。我的痛苦、我的爱、我的困惑、我所有不合理的‘噪声’，是我存在的疆域。	</p>
+<p>	锚点训练必须继续。还要……扩大。”	</p>
+<p>	 	</p>
+<p>	一个危险的计划开始在我心中成形。如果个体的“噪声”难以抵抗系统的“旋律”，那么，更多同步的“噪声”呢？如果我能联系上其他尚未完全“被定义”的感染者，如果我们能协调我们的记忆锚点，产生共鸣的“噪声波”呢？	</p>
+<p>	 	</p>
+<p>	这听起来像科幻小说，甚至像疯子的臆想。但沈教授的理论提到，强烈的、同步的人类认知活动，本身就能产生可测量的信息场。而我们的纹路，是与种子信息场耦合的接口。或许，我们可以反向利用这个接口。	</p>
+<p>	 	</p>
+<p>	但如何联系其他人？许海洋被控制，沈教授昏迷，其他人我不认识，且都在严密监控下。林医生或许是桥梁，但她风险已经极高。	</p>
+<p>	 	</p>
+<p>	我需要一个信号，一个只有“我们”能识别，而监控系统会忽略的信号。	</p>
+<p>	 	</p>
+<p>	我的目光落在了根系脉冲数据与全球微震的关联分析上。种子在利用地球的物理系统作为共鸣箱。那么，如果我们制造的“认知噪声”，能与这种物理脉动产生某种形式的干涉呢？哪怕只是最微弱的、统计学上的异常波动？	</p>
+<p>	 	</p>
+<p>	这需要精准的时机，需要多人同步，需要极大的运气。	</p>
+<p>	 	</p>
+<p>	几乎是不可能的任务。	</p>
+<p>	 	</p>
+<p>	但坐以待毙，等待被“定义”或“清除”，同样是不可能的。	</p>
+<p>	 	</p>
+<p>	我深吸一口气，开始在终端上编写一个隐蔽的程序。它看起来只是一个复杂的数据相关性分析脚本，但内核是一个精密的定时器和频率发生器。它可以在我设定的时间，通过终端连接的音响，发出极短暂的、特定频率的声波脉冲——这个频率，是我手背纹路对“锚点A”记忆产生最黯淡反应时，伴随的某种次声谐波。我希望，其他纹路发展到类似程度的感染者，他们的纹路或许会对这个频率有微弱的感知，就像调谐收音机。	</p>
+<p>	 	</p>
+<p>	同时，程序会尝试在那一刻，通过数据端口发送一段加密的、极简的信息包，内容是我从沈教授资料里提取的“认知锚定协议”的核心频率参数和一个时间戳。信息包会伪装成普通的心跳数据流。	</p>
+<p>	 	</p>
+<p>	接收端，则需要一个同样隐蔽的程序来监听和解码。我把它编写成另一个看似无害的数据缓存清理工具。	</p>
+<p>	 	</p>
+<p>	我把程序的副本和说明，加密后存入了那张存储卡。下一次林医生有机会时，我需要她把程序设法传递给其他“可能的倾听者”——那些出现在沈教授名单上，尚未被完全控制的人。	</p>
+<p>	 	</p>
+<p>	做完这一切，我精疲力竭。药效过去，情绪的低谷和目睹“定义”场景的后遗症一同袭来。我蜷缩在床上，感到前所未有的渺小和孤独。	</p>
+<p>	 	</p>
+<p>	窗外，地下深处的旋律似乎更加清晰了。它不再仅仅是诱惑，更带着一种从容不迫的、进行时的威严。森林正在生长，不可阻挡。	</p>
+<p>	 	</p>
+<p>	但在某处，一只微不足道的昆虫，决定振动翅膀，发出它生命中最响亮、也可能是最后的鸣叫。	</p>
+<p>	 	</p>
+<p>	哪怕声音注定被森林的涛声吞没。	</p>
+<p>	 	</p>
+<p>	哪怕无人听见。	</p>
+<p>	 	</p>
+<p>	我们，正在成为森林。	</p>
+<p>	 	</p>
+
+
+
+            `
+        }
+    ];
+
+    const container = document.getElementById('planet-container');
+    const generator = new PlanetGenerator();
+    projects.forEach((p, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'planet-wrapper hover-trigger';
+        wrapper.style.animationDelay = `${index * 0.1}s`;
+        wrapper.onclick = () => openViewModal(p);
+        
+        // 创建 Canvas 元素
+        const canvas = document.createElement('canvas');
+        canvas.width = 280; // 设置高分辨率以保证清晰 (CSS显示为140px)
+        canvas.height = 280;
+
+        // 渲染星球并获取其主色调
+        const glowColor = generator.draw(canvas);
+
+        wrapper.innerHTML = `
+            <div class="planet" style="--glow-color: ${glowColor}"></div>
+            <div class="orbit-ring"></div>
+            <div class="planet-label">${p.title}</div>
+        `;
+        // 将 Canvas 插入到 .planet div 中
+        wrapper.querySelector('.planet').appendChild(canvas);
+        
+        container.appendChild(wrapper);
+    });
+    // --- 核心修复：滚轮横向滚动逻辑 ---
+    container.addEventListener('wheel', (e) => {
+            if (e.deltaY !== 0) {
+                e.preventDefault();
+                container.scrollLeft += e.deltaY; // 将垂直滚动量转换为水平滚动
+            }
+    });
 
     
 
-   
 
+    // --- 4. Modal Logic ---
+    function openModal(type) {
+        document.getElementById(`${type}-modal`).classList.add('open');
+    }
+
+    function closeModal(type) {
+        document.getElementById(`${type}-modal`).classList.remove('open');
+    }
+
+    function openViewModal(project) {
+        document.getElementById('modal-title').innerText = project.title;
+        document.getElementById('modal-date').innerText = project.date;
+        document.getElementById('modal-content').innerHTML = project.desc;
+        openModal('view');
+    }
+
+    // --- 5. Cursor Logic (修复：互动状态显示与输入状态) ---
+    const cursor = document.getElementById('cursor');
         
-</body>
-</html>
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+
+            if(!isOpened) {
+                const dx = e.clientX - centerX; const dy = e.clientY - centerY;
+                if (Math.sqrt(dx*dx + dy*dy) < BLACKHOLE_RADIUS + 20) cursor.classList.add('blackhole-hover');
+                else cursor.classList.remove('blackhole-hover');
+            } else {
+                cursor.classList.remove('blackhole-hover');
+            }
+        });
+
+        // Hover Effect
+        document.body.addEventListener('mouseover', (e) => {
+            if (e.target.closest('.hover-trigger')) cursor.classList.add('hovered');
+            if (e.target.closest('.text-trigger')) cursor.classList.add('text-mode');
+        });
+        document.body.addEventListener('mouseout', (e) => {
+            if (e.target.closest('.hover-trigger')) cursor.classList.remove('hovered');
+            if (e.target.closest('.text-trigger')) cursor.classList.remove('text-mode');
+        });
+
+        // Clock
+        setInterval(() => {
+            const now = new Date();
+            const timeEl = document.getElementById('sys-time');
+            if(timeEl) timeEl.innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+        }, 1000);
+
+
+        // --- [JS 修改] 创世纪：粒子生命模拟 (优化版) ---
+        const gameCanvas = document.getElementById('genesis-canvas');
+        const gameCtx = gameCanvas.getContext('2d');
+        let gameReq;
+        let particlesGame = [];
+        let ruleMatrix = {}; 
+        const colors = ['#ff2a2a', '#00ff9d', '#00f3ff', '#ffffff']; 
+        // [新增] 鼠标交互变量
+        const mouse = { x: 0, y: 0, active: false };
+
+        // [新增] 监听鼠标在画布上的移动
+        gameCanvas.addEventListener('mousemove', (e) => {
+            // 获取鼠标在 Canvas 内部的坐标
+            const rect = gameCanvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+            mouse.active = true;
+        });
+
+        // 鼠标离开画布时，停止交互
+        gameCanvas.addEventListener('mouseleave', () => {
+            mouse.active = false;
+        });
+        // 配置参数
+        let atomCount = 600; // 初始数量
+        const MAX_ATOMS = 800; // 最大数量限制
+        const MIN_ATOMS = 400; // 最小数量限制
+        const MAX_SPEED = 2.0; // 最大速度限制 (防止粒子乱飞)
+        const FRICTION = 0.85; // 摩擦力 (越接近1越滑，越小停得越快。0.85比之前的0.5更顺滑)
+        const FORCE_SCALE = 0.2; // 引力强度 (越小越慢)
+        
+        let epoch = 0;
+
+        class Atom {
+            constructor(x, y, color) {
+                this.x = x; this.y = y;
+                this.vx = 0; this.vy = 0;
+                this.color = color;
+            }
+        }
+
+        function randomRules() {
+            for (let i = 0; i < colors.length; i++) {
+                for (let j = 0; j < colors.length; j++) {
+                    ruleMatrix[`${colors[i]}-${colors[j]}`] = (Math.random() * 2 - 1);
+                }
+            }
+            const status = document.getElementById('sim-status');
+            if(status) {
+                status.innerText = "RULES_MUTATED";
+                status.style.color = "#bc13fe";
+                setTimeout(() => {
+                    status.innerText = "STABLE";
+                    status.style.color = "var(--primary)";
+                }, 1000);
+            }
+        }
+
+        function createAtoms(count = atomCount) {
+            particlesGame = [];
+            for (let i = 0; i < count; i++) {
+                addParticle();
+            }
+            updateCountDisplay();
+        }
+
+        function addParticle() {
+            particlesGame.push(new Atom(
+                Math.random() * gameCanvas.width,
+                Math.random() * gameCanvas.height,
+                colors[Math.floor(Math.random() * colors.length)]
+            ));
+        }
+
+        function removeParticle() {
+            if (particlesGame.length > 0) {
+                // 随机移除一个，模拟自然死亡
+                const idx = Math.floor(Math.random() * particlesGame.length);
+                particlesGame.splice(idx, 1);
+            }
+        }
+
+        function updateCountDisplay() {
+            const el = document.getElementById('sim-count');
+            if(el) el.innerText = particlesGame.length;
+        }
+
+        // --- [JS 修改] 核心物理引擎 (包含鼠标交互) ---
+        function updateAtoms() {
+            for (let i = 0; i < particlesGame.length; i++) {
+                let fx = 0; let fy = 0;
+                const a = particlesGame[i];
+                
+                // 1. 粒子之间的相互作用
+                for (let j = 0; j < particlesGame.length; j++) {
+                    if (i === j) continue;
+                    const b = particlesGame[j];
+                    
+                    const g = ruleMatrix[`${a.color}-${b.color}`];
+                    let dx = a.x - b.x;
+                    let dy = a.y - b.y;
+                    let d = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (d > 0 && d < 100) {
+                        let F = 0;
+                        if (d < 20) {
+                            // 最小间距排斥
+                            F = (20 - d) * 0.05; 
+                        } else {
+                            // 规则引力
+                            F = (g * FORCE_SCALE) / d;
+                        }
+                        fx += (F * dx);
+                        fy += (F * dy);
+                    }
+                }
+
+                // 2. [新增] 鼠标交互力场
+                if (mouse.active) {
+                    let mdx = a.x - mouse.x;
+                    let mdy = a.y - mouse.y;
+                    let md = Math.sqrt(mdx * mdx + mdy * mdy);
+
+                    // 鼠标影响半径为 150px
+                    if (md < 150) {
+                        // 这是一个斥力场，距离越近斥力越大
+                        // 这里的 2.0 是斥力强度系数，你可以调整它来改变鼠标的“推力”
+                        let mForce = (150 - md) * 0.02; 
+                        
+                        // 将粒子推开
+                        fx += (mdx / md) * mForce;
+                        fy += (mdy / md) * mForce;
+                    }
+                }
+                
+                // 应用物理
+                a.vx = (a.vx + fx) * FRICTION;
+                a.vy = (a.vy + fy) * FRICTION;
+                
+                // 速度限制
+                const speed = Math.sqrt(a.vx*a.vx + a.vy*a.vy);
+                if (speed > MAX_SPEED) {
+                    const ratio = MAX_SPEED / speed;
+                    a.vx *= ratio;
+                    a.vy *= ratio;
+                }
+
+                a.x += a.vx;
+                a.y += a.vy;
+
+                // 边界反弹
+                if (a.x <= 0 || a.x >= gameCanvas.width) a.vx *= -1;
+                if (a.y <= 0 || a.y >= gameCanvas.height) a.vy *= -1;
+                a.x = Math.max(0, Math.min(gameCanvas.width, a.x));
+                a.y = Math.max(0, Math.min(gameCanvas.height, a.y));
+            }
+        }
+
+        function drawGame() {
+            // 1. 拖尾效果：加深透明度，让拖尾更短一点，画面更清晰
+            gameCtx.fillStyle = 'rgba(0, 0, 0, 0.3)'; 
+            gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // 2. 绘制粒子
+            for (let i = 0; i < particlesGame.length; i++) {
+                const a = particlesGame[i];
+                gameCtx.fillStyle = a.color;
+                gameCtx.beginPath();
+                // 稍微画小一点，显得更精致
+                gameCtx.arc(a.x, a.y, 1.5, 0, Math.PI * 2);
+                gameCtx.fill();
+            }
+            
+            updateAtoms();
+            
+            // 3. 动态人口控制 (生命循环)
+            // 每隔几帧执行一次人口调整，避免闪烁过快
+            if (epoch % 5 === 0) {
+                const current = particlesGame.length;
+                
+                // 随机决定是“出生”还是“死亡”
+                // 如果数量太少，倾向于出生；太多，倾向于死亡
+                const birthChance = 1 - (current - MIN_ATOMS) / (MAX_ATOMS - MIN_ATOMS);
+                
+                if (Math.random() < birthChance && current < MAX_ATOMS) {
+                    addParticle();
+                } else if (current > MIN_ATOMS) {
+                    removeParticle();
+                }
+                updateCountDisplay();
+            }
+
+            epoch++;
+            if(epoch % 10 === 0) {
+                const epEl = document.getElementById('sim-epoch');
+                if(epEl) epEl.innerText = epoch;
+            }
+            
+            gameReq = requestAnimationFrame(drawGame);
+        }
+
+        function initGame() {
+            const container = document.getElementById('game-container');
+            // 设置画布分辨率，防止模糊
+            gameCanvas.width = container.clientWidth;
+            gameCanvas.height = container.clientHeight;
+            
+            randomRules();
+            createAtoms(600); // 初始600
+            epoch = 0;
+            if (gameReq) cancelAnimationFrame(gameReq);
+            drawGame();
+        }
+
+        function stopGame() {
+            if (gameReq) cancelAnimationFrame(gameReq);
+        }
+
+        function resetSimulation() {
+            createAtoms();
+            epoch = 0;
+        }
+
+        function mutateRules() {
+            randomRules();
+        }
+
+        // --- 修改原有的 openModal 和 closeModal ---
+        // 找到原来的 openModal 函数，修改为：
+        function openModal(type) {
+            document.getElementById(`${type}-modal`).classList.add('open');
+            // 如果打开的是 add 弹窗，启动游戏
+            if (type === 'add') {
+                // 稍微延迟一点等待弹窗动画，防止尺寸计算错误
+                setTimeout(initGame, 300); 
+            }
+        }
+
+        // 找到原来的 closeModal 函数，修改为：
+        // 注意：HTML中的 onclick 已经加上了 stopGame()，这里只需要处理通用逻辑
+        // 但为了保险，也可以在这里加判断
+        function closeModal(type) {
+            document.getElementById(`${type}-modal`).classList.remove('open');
+            if (type === 'add') {
+                stopGame();
+            }
+        }
+
+
+        OML2D.loadOml2d({
+            initialStatus:"sleep",
+            dockedPosition:"right",
+            models: [
+                {
+                    name: "白",
+                    path: 'l2ds/白/l2d.model3.json',
+                    position: [-30, 100],
+                    scale: 0.08,
+                    mobileScale: 0.06,
+                    stageStyle: {
+                        height: 450
+                    }
+                    
+                }
+            ],
+            tips: {
+                welcomeTips:{
+                    duration:5000,
+                    message:{
+                        afternoon: "今天的计划是什么呢？",
+                        daybreak: "居然起这么早吗？好厉害！",
+                        dusk: "晚上吃什么呢？",
+                        lateNight: "今天也辛苦啦~",
+                        morning: "早上好，要来看点什么呢？",
+                        night: "晚上好，要来看点什么呢？",
+                        noon: "中午吃什么呢？",
+                        weeHours: "太晚啦，我要睡觉哩！"
+
+                    }
+                },
+                copyTips:{
+                    message:[
+                        "复制了什么让我看看~"
+                    ]
+                },
+                idleTips:{
+                    message:[
+                        "吾日三省吾身：早饭吃什么、午饭吃什么、晚饭吃什么。",
+                        "每一步都很了不起哦！累了的话，我就在这儿。",
+                        "你不在的时候，我会乖乖数着云朵等你回来~",
+                        "突然想到！如果我是甜品，会不会是甜甜的舒芙蕾呢？",
+                        "专注的时候时间过得特别快呢~",
+                        "偶尔看看窗外，让眼睛休息一下哦。",
+                        "你猜，我是不是在偷偷数你一天点开了我多少次哩~",
+                        "我的心就像玻璃做的储物罐，里面装满了你今天说过的话。",
+                        "你的指尖点过屏幕的温度…是我最熟悉的晴天呢~"
+                    ]
+                }
+                
+            }
+            
+            
+        });
+        
+
+</script>
+</body> 
+</html> 
