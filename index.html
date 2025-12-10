@@ -1068,6 +1068,14 @@
             const timeEl = document.getElementById('sys-time');
             if(timeEl) timeEl.innerText = timeString;
         }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (isMobile) {
+                window.location.href = '/archive.html';  // 跳转到档案库页面
+            }
+        });
+
         setInterval(updateSystemTime, 1000);
         updateSystemTime();
 
