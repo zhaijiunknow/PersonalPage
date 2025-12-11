@@ -235,6 +235,15 @@
 
         @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
+        .animate-spin-slow {
+            animation: spin-slow 10s linear infinite;
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+
 </style>
 </head> 
 <body>
@@ -611,7 +620,7 @@ class PlanetGenerator {
         }
 
     const projects = [
-        { 
+            { 
             title: "晚安，船长", 
             color: "radial-gradient(circle at 30% 30%, #4facfe, #00f2fe)", 
             glow: "#00f3ff",
@@ -2026,9 +2035,49 @@ class PlanetGenerator {
 <p>	 	</p>
 <p>	我们，正在成为森林。	</p>
 <p>	 	</p>
+            `
+        },
+        {  
+                title: "原则生物", 
+                // 银白色调，符合钢琴独白的意境
+                color: "radial-gradient(circle at 30% 30%, #e0e0e0, #909090)", 
+                glow: "#ffffff", 
+                date: "2022-06-15", 
+                // HTML 内容：包含播放器结构
+                desc: `
+                    <div class="flex flex-col items-center justify-center text-center h-full space-y-4">
+                        <div class="w-16 h-1 bg-white/20 mb-4"></div>
+                        <h3 class="text-3xl font-orbitron text-white tracking-widest">原则生物</h3>
+                        <p class="text-xs font-mono text-gray-400 tracking-wider border-b border-gray-700 pb-2">词：我/曲：阿钟</p>
+                        
+                        <div class="py-6 text-gray-300 font-light leading-loose text-sm">
+                            <p>点击下方按钮</p>
+                        </div>
 
+                        <div class="relative group cursor-pointer hover-trigger" id="music-trigger">
+                            <button class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center text-xl shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all transform group-hover:scale-110 group-hover:shadow-[0_0_50px_rgba(255,255,255,0.6)]">
+                                <i class="fas fa-play ml-1" id="play-icon"></i>
+                            </button>
+                            <audio id="planet-audio" src="Music/宅久p - 原则生物.mp3"></audio>
+                        </div>
 
-
+                        <p class="text-[10px] text-gray-500 mt-4 font-mono animate-pulse">听</p>
+                    </div>
+                ` 
+            },
+            { 
+            title: "关于我", 
+            color: "radial-gradient(circle at 30% 30%, #4facfe, #00f2fe)", 
+            glow: "#00f3ff",
+            date: "",
+            desc: `
+                <p><b>l2d模型</b></p>
+                画师：煎果饼子txy / 模型：逐尾鲨
+                <p><b>l2d调用库</b></p>
+                <a href="https://github.com/oh-my-live2d/oh-my-live2d" class="nav-link hover-trigger group">
+                    <i class="fas fa-plus text-xs group-hover:rotate-90 transition-transform"></i>oh-my-live2d
+                </a>
+                oh-my-live2d
             `
         }
     ];
@@ -2079,12 +2128,68 @@ class PlanetGenerator {
         document.getElementById(`${type}-modal`).classList.remove('open');
     }
 
+    // --- [JS 修改位置 2] 增强弹窗逻辑，支持音乐播放 ---
     function openViewModal(project) {
-        document.getElementById('modal-title').innerText = project.title;
-        document.getElementById('modal-date').innerText = project.date;
-        document.getElementById('modal-content').innerHTML = project.desc;
-        openModal('view');
-    }
+            document.getElementById('modal-title').innerText = project.title;
+            document.getElementById('modal-date').innerText = project.date;
+            
+            // 1. 注入 HTML 内容
+            const contentContainer = document.getElementById('modal-content');
+            contentContainer.innerHTML = project.desc;
+            
+            openModal('view');
+            
+            // 如果定义了 updateScrollUI (上一轮修改中的代码)，这里调用它
+            if (typeof updateScrollUI === 'function') updateScrollUI();
+
+            // 2. [新增] 检查是否有音乐播放器并绑定事件
+            const trigger = document.getElementById('music-trigger');
+            const audio = document.getElementById('planet-audio');
+            const icon = document.getElementById('play-icon');
+
+            if (trigger && audio && icon) {
+                // 解绑旧事件（防止多次点击）- 这里简单处理，因为每次innerHTML都是新的
+                trigger.onclick = function() {
+                    if (audio.paused) {
+                        audio.play();
+                        icon.className = "fas fa-pause"; // 切换图标
+                        trigger.querySelector('button').classList.add('animate-spin-slow'); // 可选：添加旋转动画
+                    } else {
+                        audio.pause();
+                        icon.className = "fas fa-play ml-1";
+                        trigger.querySelector('button').classList.remove('animate-spin-slow');
+                    }
+                };
+
+                // 监听播放结束，自动复原图标
+                audio.onended = function() {
+                    icon.className = "fas fa-play ml-1";
+                    trigger.querySelector('button').classList.remove('animate-spin-slow');
+                };
+            }
+        }
+        
+        // --- 补充：关闭弹窗时自动停止音乐 ---
+        // 找到 closeModal 函数，在里面添加暂停逻辑
+        const originalCloseModal = closeModal; // 保存引用如果有需要，或者直接修改原函数
+        
+        // 建议直接修改原 closeModal 函数如下：
+        function closeModal(type) {
+            document.getElementById(`${type}-modal`).classList.remove('open');
+            
+            // 如果是查看弹窗，关闭时尝试停止音乐
+            if (type === 'view') {
+                const audio = document.getElementById('planet-audio');
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0; // 重置进度
+                }
+            }
+            // 如果是添加弹窗 (原有的逻辑)
+            if (type === 'add' && typeof stopGame === 'function') {
+                stopGame();
+            }
+        }
 
     // --- 5. Cursor Logic (修复：互动状态显示与输入状态) ---
     const cursor = document.getElementById('cursor');
