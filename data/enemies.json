@@ -1,0 +1,36 @@
+{
+  "enemies": [
+    {
+      "id": 1,
+      "title": "拖延",
+      "image": "Image/enemy1.png",
+      "desc": "再等等...",
+      "maxHp": 150,
+      "attack": 15
+    },
+    {
+      "id": 2,
+      "title": "焦虑",
+      "image": "Image/enemy2.png",
+      "desc": "你永远比不过其他人！",
+      "maxHp": 200,
+      "attack": 10
+    },
+    {
+      "id": 3,
+      "title": "社交恐惧",
+      "image": "Image/enemy3.png",
+      "desc": "自我放逐！自我放逐！",
+      "maxHp": 120,
+      "attack": 25
+    },
+    {
+      "id": 4,
+      "title": "MORE",
+      "image": "Image/enemy4.png",
+      "desc": "更多",
+      "maxHp": 500,
+      "attack": 15
+    }
+  ]
+}

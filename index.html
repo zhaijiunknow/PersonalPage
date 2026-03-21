@@ -614,105 +614,29 @@
             window.location.href = 'https://zhaijiunknow.github.io/PersonalPage/archive.html';  // 假设档案库页面的 URL 是 /archive
         }
         
-        // --- GAME DATA ---
-        
-        // 玩家技能卡牌 (Projects)
-        const projects = [
-            {
-                id: 1,
-                title: "三色回响",
-                type: "Unity / 程序",
-                image: "Image/1.jpg",
-                link: "https://www.bilibili.com/video/BV17uC4B5EX6/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
-                desc: "肉鸽卡牌",
-                attr: { attack: 45, defense: 10, cost: 3 },
-                color: "from-blue-500 to-indigo-600"
-            },
-            {
-                id: 2,
-                title: "误忘我",
-                type: "Unity / 美术",
-                image: "Image/2.jpeg",
-                link: "https://www.bilibili.com/video/BV1VnyWBAEbi/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
-                desc: "一个错误，导致完成度折半的遗憾...",
-                attr: { attack: 35, defense: 30, cost: 4 },
-                color: "from-green-400 to-blue-500"
-            },
-            {
-                id: 3,
-                title: "ForTwo42",
-                type: "Unity / 程序",
-                image: "Image/3.png",
-                link: "https://www.bilibili.com/video/BV1zeTxz6ERF/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
-                desc: "2D飞行闯关，至少拿到了三教杯的最佳公众奖不是么",
-                attr: { attack: 15, defense: 40, cost: 1 },
-                color: "from-orange-400 to-red-600"
-            },
-            {
-                id: 4,
-                title: "骰子",
-                type: "UGC / 全栈",
-                image: "Image/4.png",
-                link: "https://www.bilibili.com/video/BV1Gqx5zyEog/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
-                desc: "口袋方舟做的视觉小说UGC，竟然拿到了最佳创意奖",
-                attr: { attack: 20, defense: 20, cost: 2 },
-                color: "from-blue-500 to-indigo-600"
-            },
-            {
-                id: 5,
-                title: "сигнал",
-                type: "Unity / 程序",
-                image: "Image/5.png",
-                link: "",
-                desc: "034挑战的项目，极大好评！",
-                attr: { attack: 30, defense: 30, cost: 1 },
-                color: "from-green-400 to-blue-500"
-            }
-        ];
+        // --- GAME DATA (loaded from JSON) ---
+        let projects = [], enemies = [];
 
-        // 敌人 (Life Challenges)
-        const enemies = [
-            {
-                id: 1,
-                title: "拖延",
-                image: "Image/enemy1.png",
-                desc: "再等等...",
-                maxHp: 150,
-                hp: 150,
-                attack: 15,
-                color: "from-red-600 to-orange-700"
-            },
-            {
-                id: 2,
-                title: "焦虑",
-                image: "Image/enemy2.png",
-                desc: "你永远比不过其他人！",
-                maxHp: 200,
-                hp: 200,
-                attack: 10,
-                color: "from-blue-600 to-cyan-700"
-            },
-            {
-                id: 3,
-                title: "社交恐惧",
-                image: "Image/enemy3.png",
-                desc: "自我放逐！自我放逐！",
-                maxHp: 120,
-                hp: 120,
-                attack: 25,
-                color: "from-purple-600 to-pink-700"
-            },
-            {
-                id: 4,
-                title: "MORE",
-                image: "Image/enemy4.png",
-                desc: "更多",
-                maxHp: 500,
-                hp: 500,
-                attack: 15,
-                color: "from-red-600 to-orange-700"
-            }
+        const CARD_COLORS = [
+            'from-blue-500 to-indigo-600',
+            'from-green-400 to-blue-500',
+            'from-orange-400 to-red-600',
+            'from-purple-500 to-pink-600',
+            'from-cyan-400 to-teal-600',
+            'from-yellow-400 to-orange-500',
+            'from-red-600 to-orange-700',
+            'from-blue-600 to-cyan-700'
         ];
+        const ENEMY_COLORS = [
+            'from-red-600 to-orange-700',
+            'from-blue-600 to-cyan-700',
+            'from-purple-600 to-pink-700',
+            'from-rose-600 to-red-800'
+        ];
+        function randColor(palette) {
+            return palette[Math.floor(Math.random() * palette.length)];
+        }
+
 
         // --- GAME STATE ---
         let state = {
@@ -790,7 +714,7 @@
                             </div>
 
                             <button onclick="playCard()" ${state.playerMana < p.attr.cost ? 'disabled' : ''} 
-                                class="w-full mt-2 py-2 bg-gradient-to-r ${p.color} rounded text-xs font-bold text-white uppercase tracking-wider glowing-btn hover-trigger flex justify-between px-4 items-center">
+                                class="w-full mt-2 py-2 bg-gradient-to-r ${randColor(CARD_COLORS)} rounded text-xs font-bold text-white uppercase tracking-wider glowing-btn hover-trigger flex justify-between px-4 items-center">
                                 <span>激活技能</span>
                                 <span class="flex items-center gap-1 text-[10px]"><i class="fas fa-bolt text-yellow-300"></i> -${p.attr.cost}</span>
                             </button>
@@ -1115,10 +1039,17 @@
         animateParticles();
 
         
-        // --- INIT GAME ---
-        renderPlayerCard(0);
-        renderEnemyCard();
-        updateUI();
+        // --- INIT GAME (load data from JSON) ---
+        Promise.all([
+            fetch('data/projects.json').then(r => r.json()),
+            fetch('data/enemies.json').then(r => r.json())
+        ]).then(([pData, eData]) => {
+            projects = pData.projects;
+            enemies = eData.enemies.map(e => ({ ...e, hp: e.maxHp }));
+            renderPlayerCard(0);
+            renderEnemyCard();
+            updateUI();
+        });
 
     </script>
 </body>

@@ -1,0 +1,49 @@
+{
+  "projects": [
+    {
+      "id": 1,
+      "title": "三色回响",
+      "type": "Unity / 程序",
+      "image": "Image/1.jpg",
+      "link": "https://www.bilibili.com/video/BV17uC4B5EX6/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
+      "desc": "肉鸽卡牌",
+      "attr": { "attack": 45, "defense": 10, "cost": 3 }
+    },
+    {
+      "id": 2,
+      "title": "误忘我",
+      "type": "Unity / 美术",
+      "image": "Image/2.jpeg",
+      "link": "https://www.bilibili.com/video/BV1VnyWBAEbi/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
+      "desc": "一个错误，导致完成度折半的遗憾...",
+      "attr": { "attack": 35, "defense": 30, "cost": 4 }
+    },
+    {
+      "id": 3,
+      "title": "ForTwo42",
+      "type": "Unity / 程序",
+      "image": "Image/3.png",
+      "link": "https://www.bilibili.com/video/BV1zeTxz6ERF/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
+      "desc": "2D飞行闯关，至少拿到了三教杯的最佳公众奖不是么",
+      "attr": { "attack": 15, "defense": 40, "cost": 1 }
+    },
+    {
+      "id": 4,
+      "title": "骰子",
+      "type": "UGC / 全栈",
+      "image": "Image/4.png",
+      "link": "https://www.bilibili.com/video/BV1Gqx5zyEog/?share_source=copy_web&vd_source=c5a9a793f4c0399701b34ea0fbdade60",
+      "desc": "口袋方舟做的视觉小说UGC，竟然拿到了最佳创意奖",
+      "attr": { "attack": 20, "defense": 20, "cost": 2 }
+    },
+    {
+      "id": 5,
+      "title": "сигнал",
+      "type": "Unity / 程序",
+      "image": "Image/5.png",
+      "link": "",
+      "desc": "034挑战的项目，极大好评！",
+      "attr": { "attack": 30, "defense": 30, "cost": 1 }
+    }
+  ]
+}

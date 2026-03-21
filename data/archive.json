@@ -1,0 +1,96 @@
+{
+  "entries": [
+    {
+      "title": "黄昏里",
+      "type": "prose",
+      "date": "2026-3-17",
+      "desc": "<p>走在黄昏的城市里</p><p>用脚步丈量多少年</p><p>聆听这城市的鲸歌</p><br/><p>继续走着</p><p>继续唱着</p><p>继续落着</p>"
+    },
+    {
+      "title": "晚安，船长",
+      "type": "prose",
+      "date": "2025-12-17",
+      "desc": "<p><b>第10天</b></p>该死…我们离那个黑洞越来越近了。再这样下去，整船人都得为我陪葬。必须想出办法…还能有什么办法？<p><b>第11天</b></p>最坏的消息：主燃料已不足以让飞船挣脱引力。但…或许还够让逃生舱弹射出去。该死。<p><b>第12天</b></p>没时间争论了。我宣布启动逃生程序。本以为会为名额争夺——没想到这群混蛋，竟然在互相推让活下去的机会。<p><b>第13天</b></p><p>埃里克，我们的智囊；还有艾希，她才十九岁，人生还没真正开始…就让他们俩走吧。</p><p>这是我最后一次写日志。我会命令他们在今日内离舰。奇怪的是，当决定落下，肩上的重量仿佛忽然消失了。埃里克会带上这本日志，连同我们已完成的70%勘探数据——远超任务指标——带回祖国。</p><p>是我把船引到了这条绝路上。功绩与罪责，祝福与遗憾，都留在这里吧。</p><p>晚安。</p><p><b>第13天</b></p><p>是我…艾希在写。船长让我和埃里克上逃生舱的时候，我没有哭，甚至没反应过来。</p><p>现在舱门关闭了，主船像一颗渐渐暗下去的星星。我不敢相信…他们把活着的机会推给了我。我凭什么？</p><p>埃里克说，写日志不用介绍自己。可我不知道该写什么。我的手在抖。外面那个黑洞…它好安静，又好可怕。</p><p>晚安，船长。晚安，大家。对不起。</p><p><b>第15天</b></p>主船下坠的速度…是不是变慢了？埃里克一直在看数据，我不敢问。也许还有希望…也许…<p><b>第17天</b></p><p>埃里克终于开口了。他说，速度减慢不是好事…那代表黑洞的引力已经开始拉扯船体，时间对他们来说…已经几乎停止了。</p><p>我哭不出来。只觉得心里有什么东西塌陷了下去。</p><p><b>第18天</b></p><p>主船停在了黑洞边缘，像一枚标本，像一道墓碑。光芒缠绕着它，仿佛凝固的挽歌。光从那里扭曲逃逸，使它看起来永恒地定格在了最后一秒。</p><p>埃里克轻轻合上数据板，说，<b>他们已经不在那儿了</b>。</p><p>他们在哪儿？</p><p>他没有回答。</p><p>晚安，探险者38号。晚安，把我留下的你们。</p>"
+    },
+    {
+      "title": "星球种子",
+      "type": "prose",
+      "color": "radial-gradient(circle at 30% 30%, #f093fb, #f5576c)",
+      "glow": "#ff00ff",
+      "date": "2025-06-10",
+      "desc": ""
+    },
+    {
+      "title": "第四阶段.回归",
+      "type": "music",
+      "color": "radial-gradient(circle at 30% 30%, #e0e0e0, #909090)",
+      "glow": "#ffffff",
+      "date": "2026-01-06",
+      "audioSrc": "Music/第四阶段.回归.mp3",
+      "credits": "词：我/曲：suno",
+      "footer": "第四阶段"
+    },
+    {
+      "title": "第三阶段.认可",
+      "type": "music",
+      "color": "radial-gradient(circle at 30% 30%, #e0e0e0, #909090)",
+      "glow": "#ffffff",
+      "date": "2026-01-06",
+      "audioSrc": "Music/第三阶段.认可.mp3",
+      "credits": "词：我/曲：suno",
+      "footer": "第三阶段"
+    },
+    {
+      "title": "第二阶段.模仿",
+      "type": "music",
+      "color": "radial-gradient(circle at 30% 30%, #e0e0e0, #909090)",
+      "glow": "#ffffff",
+      "date": "2026-01-05",
+      "audioSrc": "Music/第二阶段.模仿.mp3",
+      "credits": "词：我/曲：suno",
+      "footer": "第二阶段"
+    },
+    {
+      "title": "第一阶段.解构",
+      "type": "music",
+      "color": "radial-gradient(circle at 30% 30%, #e0e0e0, #909090)",
+      "glow": "#ffffff",
+      "date": "2026-01-05",
+      "audioSrc": "Music/第一阶段.解构.mp3",
+      "credits": "词：我/曲：suno",
+      "footer": "第一阶段"
+    },
+    {
+      "title": "即使这样我也想放声歌唱",
+      "type": "music",
+      "color": "radial-gradient(circle at 30% 30%, #e0e0e0, #909090)",
+      "glow": "#ffffff",
+      "date": "2025-12-29",
+      "audioSrc": "Music/即使这样我也想放声歌唱.mp3",
+      "credits": "词：我/曲：我",
+      "footer": "这是写给懦弱的我。爱你老己，明天见"
+    },
+    {
+      "title": "原则生物",
+      "type": "music",
+      "color": "radial-gradient(circle at 30% 30%, #e0e0e0, #909090)",
+      "glow": "#ffffff",
+      "date": "2022-06-15",
+      "audioSrc": "Music/宅久p - 原则生物.mp3",
+      "credits": "词：我/曲：阿钟",
+      "footer": "懦弱的我所写"
+    },
+    {
+      "title": "关于我",
+      "type": "prose",
+      "date": "",
+      "desc": "<p><b>三百六十行，行行都马虎</b></p>可绘画，能写词，会编程<p></p>鬼点子很多一拍脑门就做<p><b>就算如此，世界依旧灿烂</b></p>其实我也不知道这里应该写点什么"
+    },
+    {
+      "title": "声明",
+      "type": "prose",
+      "date": "",
+      "desc": "<p><b>l2d模型</b></p>画师：煎果饼子txy / 模型：逐尾鲨<p><b>l2d调用库</b></p><a href=\"https://github.com/oh-my-live2d/oh-my-live2d\" class=\"nav-link hover-trigger group\"><i class=\"fas fa-plus text-xs group-hover:rotate-90 transition-transform\"></i>oh-my-live2d</a>"
+    }
+  ]
+}
