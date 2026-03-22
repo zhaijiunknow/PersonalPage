@@ -650,14 +650,25 @@ class PlanetGenerator {
     fetch('data/archive.json')
         .then(r => r.json())
         .then(data => {
+            console.log('Loaded archive.json:', data);
             return Promise.all(data.entries.map(e => {
-                if (e.type === 'prose' && e.file) {
-                    return fetch(e.file).then(r => r.text()).then(text => ({ ...e, desc: textToHtml(text) }));
+                if (e.file) {
+                    return fetch(e.file)
+                        .then(r => {
+                            if (!r.ok) throw new Error(`Failed to load ${e.file}`);
+                            return r.text();
+                        })
+                        .then(html => ({ ...e, desc: html }))
+                        .catch(err => {
+                            console.error(`Error loading ${e.file}:`, err);
+                            return { ...e, desc: `<p>加载失败: ${e.file}</p>` };
+                        });
                 }
                 return Promise.resolve({ ...e, desc: renderDesc(e) });
             }));
         })
         .then(projects => {
+            console.log('Processed projects:', projects);
             projects.forEach((p, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'planet-wrapper hover-trigger';
@@ -675,6 +686,10 @@ class PlanetGenerator {
                 wrapper.querySelector('.planet').appendChild(canvas);
                 container.appendChild(wrapper);
             });
+            console.log('Planets rendered:', projects.length);
+        })
+        .catch(err => {
+            console.error('Error loading archive:', err);
         });
 
     // --- 核心修复：滚轮横向滚动逻辑 ---
