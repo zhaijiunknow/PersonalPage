@@ -44,6 +44,15 @@
       "link": "",
       "desc": "034挑战的项目，极大好评！",
       "attr": { "attack": 30, "defense": 30, "cost": 1 }
+    },
+    {
+      "id": 6,
+      "title": "Project N.E.K.O.",
+      "type": "我就宣传",
+      "image": "Image/5.png",
+      "link": "https://space.bilibili.com/3546576295299130?spm_id_from=333.337.0.0",
+      "desc": "关注NEKO喵，我们的征途可是打破次元壁啊！",
+      "attr": { "attack": 15, "defense": 40, "cost": 1 }
     }
   ]
 }
