@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+      "Skill(run:*)",
+      "PowerShell(Get-Command python,py,node,npx,chrome,msedge -ErrorAction SilentlyContinue)",
+      "PowerShell(node --check \"d:\\\\NekoClaw\\\\PersonalPage\\\\index.html\")",
+      "PowerShell($job = Start-Job -ScriptBlock { param\\($path\\) Set-Location $path; python -m http.server 8000 } -ArgumentList 'd:\\\\NekoClaw\\\\PersonalPage'; Start-Sleep -Seconds 2; try { \\(Invoke-WebRequest -Uri 'http://127.0.0.1:8000/index.html' -UseBasicParsing\\).StatusCode } finally { Stop-Job $job; Remove-Job $job })"
+    ]
+  }
+}

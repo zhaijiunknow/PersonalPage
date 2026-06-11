@@ -55,6 +55,14 @@
             border-color: var(--secondary);
         }
 
+        #cursor.blackhole-hover {
+            width: 80px;
+            height: 80px;
+            border-color: white;
+            background-color: rgba(255,255,255,0.1);
+            mix-blend-mode: normal;
+        }
+
         #cursor.enemy-hover {
             border-color: var(--danger);
             background-color: rgba(255, 42, 42, 0.2);
@@ -355,9 +363,191 @@
             width: 100%;
         }
 
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+        #archive-section.active {
+            position: fixed;
+            inset: 0;
+            z-index: 8;
+            pointer-events: none;
+        }
+        #galaxy-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 6;
+            display: none;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        .intro-text {
+            font-family: 'Orbitron';
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.7);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            animation: pulse 3s infinite;
+        }
+
+        .intro-sub {
+            font-family: 'JetBrains Mono';
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        #intro-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            transition: opacity 1s ease;
+        }
+
+        #intro-layer.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #archive-section { position: absolute; inset: 0; z-index: 20; }
+        #archive-layer {
+            position: absolute; inset: 0; z-index: 7;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transform: scale(1.1);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+        #archive-section.active #archive-layer.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
         .shadow-blue-glow {
             text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
         }
+
+        .planet-scroll-container {
+            display: flex; gap: 80px; padding: 0 50vw 0 10vw;
+            overflow-x: auto; width: 100%; height: 60vh; align-items: center;
+            scrollbar-width: none; -ms-overflow-style: none;
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+        .planet-scroll-container::-webkit-scrollbar { display: none; }
+        .planet-wrapper { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 20px; transition: transform 0.3s; position: relative; }
+        .planet-wrapper:hover { transform: translateY(-10px) scale(1.05); }
+        .planet { width: 140px; height: 140px; border-radius: 50%; position: relative; background: black; box-shadow: 0 0 20px rgba(0,0,0,0.5); transition: all 0.5s ease; overflow: hidden; }
+        .planet canvas { width: 100%; height: 100%; display: block; }
+        .planet:hover { box-shadow: 0 0 50px var(--glow-color); transform: scale(1.05); }
+        .orbit-ring { position: absolute; width: 220px; height: 80px; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); pointer-events: none; transition: 0.3s; }
+        .planet-wrapper:hover .orbit-ring { border-color: rgba(255,255,255,0.4); transform: translate(-50%, -50%) rotate(0deg); }
+        .planet-label { font-family: 'Orbitron'; font-size: 0.9rem; letter-spacing: 1px; text-shadow: 0 2px 4px black; opacity: 0.7; transition: 0.3s; margin-top: 20px; }
+        .planet-wrapper:hover .planet-label { opacity: 1; color: var(--primary); letter-spacing: 2px; }
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            z-index: 100; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            background: rgba(15, 20, 30, 0.95); border: 1px solid var(--primary);
+            width: 700px; max-width: 90vw; max-height: 80vh; border-radius: 12px;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.15); transform: scale(0.9);
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; overflow: hidden;
+        }
+        .modal-overlay.open .modal-card { transform: scale(1); }
+        .modal-header { padding: 20px 30px; background: rgba(0, 243, 255, 0.05); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .modal-scroll-area { position: relative; flex: 1; overflow: hidden; display: flex; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .modal-body { padding: 30px; overflow-y: auto; color: #ccc; font-family: 'JetBrains Mono'; line-height: 1.8; font-size: 0.9rem; }
+        .modal-body::-webkit-scrollbar { width: 6px; }
+        .modal-body::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        .modal-body::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        .modal-body::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+        .close-btn { transition: 0.2s; }
+        .close-btn:hover { color: var(--danger); transform: rotate(90deg); }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        #genesis-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .game-hud {
+            position: absolute;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .hud-top-left { top: 20px; left: 20px; }
+        .hud-bottom-right { bottom: 20px; right: 20px; text-align: right; }
+
+        .hud-text {
+            font-family: 'Orbitron';
+            font-size: 0.8rem;
+            color: var(--primary);
+            text-shadow: 0 0 5px var(--primary);
+            letter-spacing: 1px;
+        }
+
+        .hud-sub {
+            font-family: 'JetBrains Mono';
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            pointer-events: auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .game-btn {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 5px 10px;
+            font-size: 0.7rem;
+            font-family: 'Orbitron';
+            cursor: none;
+            transition: 0.2s;
+        }
+
+        .game-btn:hover {
+            background: var(--primary);
+            color: black;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .animate-spin-slow {
+            animation: spin-slow 10s linear infinite;
+        }
+
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         /* 极窄屏幕适配：768px以下改为上下分布 */
         @media (max-width: 768px) {
             /* 主游戏区域从水平flex改为垂直flex */
@@ -436,6 +626,7 @@
             }
         }
     </style>
+    <script src="https://unpkg.com/oh-my-live2d@latest"></script>
 </head>
 <body>
     <div>
@@ -462,10 +653,10 @@
   
         <!-- Center: Navigation Links -->
         <div class="hidden md:flex items-center gap-12 absolute left-1/2 transform -translate-x-1/2">
-            <a href="#" class="nav-link active" data-target="home">
+            <a href="#home" class="nav-link active" data-target="home">
                 <span class="nav-icon"><i class="fas fa-home"></i></span> 主控台
             </a>
-            <a href="archive.html" class="nav-link" data-target="archive">
+            <a href="#archive" class="nav-link" data-target="archive">
                 <span class="nav-icon"><i class="fas fa-box-open"></i></span> 档案库
             </a>
             <!-- <a href="#" class="nav-link" data-target="settings">
@@ -476,20 +667,27 @@
         <!-- Right: Time & Tools -->
         <div class="flex items-center gap-5">
             <span id="sys-time" class="font-mono text-sm text-gray-300 font-bold tracking-widest shadow-blue-glow">00:00:00</span>
-            
+
             <div class="flex gap-2">
-                
+                <button id="particle-sim-trigger" onclick="openModal('add')" class="nav-link hover-trigger group hidden">
+                    <i class="fas fa-plus text-xs group-hover:rotate-90 transition-transform"></i>粒子模拟场
+                </button>
             </div>
         </div>
       </nav>
     </div>
     
-    <!-- Canvas Background -->
     <canvas id="bg-canvas"></canvas>
-    
-    <!-- Custom Cursor -->
+    <canvas id="galaxy-canvas"></canvas>
+    <audio id="bgm-audio" preload="auto"></audio>
     <div id="cursor"></div>
+    <div id="intro-layer" class="hidden">
+        <h1 class="intro-text text-4xl"></h1>
+        <p class="intro-sub"></p>
+        <p class="text-[10px] text-gray-600 mt-2"></p>
+    </div>
     
+    <div id="home-section" class="page-section active">
         <!-- Top HUD: Identity -->
     <div class="fixed top-16 left-0 w-full p-6 flex justify-between items-start z-50 pointer-events-none">
         <div>
@@ -607,12 +805,70 @@
         </div>
         
     </div>
-    
+    </div>
+
+    <div id="archive-section" class="page-section">
+        <div id="archive-layer">
+            <div class="planet-scroll-container" id="planet-container">
+                <!-- Planets Generated by JS -->
+            </div>
+        </div>
+
+        <!-- Document View Modal -->
+        <div id="view-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div class="flex flex-col">
+                        <h2 class="text-xl font-orbitron text-white" id="modal-title">TITLE</h2>
+                        <span class="text-xs text-cyan-400 font-mono" id="modal-date">DATE</span>
+                    </div>
+                    <i class="fas fa-times text-xl close-btn hover-trigger" onclick="closeModal('view')"></i>
+                </div>
+                <div class="modal-body" id="modal-content">
+                    <!-- Content injected here -->
+                </div>
+                <div class="p-4 border-t border-white/10 flex justify-end"></div>
+            </div>
+        </div>
+
+        <!-- Genesis Game Modal -->
+        <div id="add-modal" class="modal-overlay">
+            <div class="modal-card" style="width: 800px; height: 600px;">
+                <div class="modal-header">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-dna text-purple-400"></i>
+                        <h2 class="text-xl font-orbitron text-purple-400">粒子模拟</h2>
+                    </div>
+                    <i class="fas fa-times text-xl close-btn hover-trigger" onclick="stopGame(); closeModal('add')"></i>
+                </div>
+                <div class="modal-body p-0 overflow-hidden relative" style="flex: 1;">
+                    <div id="game-container">
+                        <canvas id="genesis-canvas"></canvas>
+                        <div class="game-hud hud-top-left">
+                            <div class="hud-text">模拟运行中...</div>
+                            <div class="hud-sub">纪元: <span id="sim-epoch">0</span></div>
+                            <div class="hud-sub">实体: <span id="sim-count">0</span></div>
+                        </div>
+                        <div class="game-hud hud-bottom-right">
+                            <div class="hud-text" id="sim-status">稳定</div>
+                            <div class="hud-sub">熵水平</div>
+                        </div>
+                        <div class="control-panel">
+                            <button class="game-btn hover-trigger" onclick="resetSimulation()">重启</button>
+                            <button class="game-btn hover-trigger" onclick="mutateRules()">变更规则</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-2 border-t border-white/10 bg-black/40 flex justify-between items-center px-4">
+                    <span class="text-[10px] text-gray-500 font-mono">> 观察人工智能生命的自主演化。红色=捕食者，绿色=资源，蓝色=守护者。</span>
+                    <span class="text-[10px] text-purple-400 font-mono animate-pulse">● 记录数据...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        if (window.innerWidth <= 768) { // 判断设备宽度是否为手机
-            // 如果是手机设备，跳转到档案库页面
-            window.location.href = 'https://zhaijiunknow.github.io/PersonalPage/archive.html';  // 假设档案库页面的 URL 是 /archive
-        }
+        // Mobile 设备也使用单页应用模式，避免页面间跳转。
         
         // --- GAME DATA (loaded from JSON) ---
         let projects = [], enemies = [];
@@ -648,6 +904,41 @@
             enemyIndex: 0,
             isPlayerTurn: true
         };
+        let archiveOpened = false;
+        const bgmAudio = document.getElementById('bgm-audio');
+        const bgmTracks = [
+            'Music/1.wav',
+            'Music/2.wav',
+            'Music/3.wav',
+            'Music/4.wav',
+            'Music/5.wav'
+        ];
+        let bgmStarted = false;
+
+        function setupBackgroundMusic() {
+            if (!bgmAudio) return;
+            bgmAudio.volume = 0.08;
+            bgmAudio.dataset.currentTrack = '';
+            bgmAudio.src = bgmTracks[Math.floor(Math.random() * bgmTracks.length)];
+            bgmAudio.dataset.currentTrack = bgmAudio.src;
+            bgmAudio.addEventListener('ended', () => {
+                let nextTrack = bgmAudio.dataset.currentTrack;
+                while (bgmTracks.length > 1 && nextTrack === bgmAudio.dataset.currentTrack) {
+                    nextTrack = bgmTracks[Math.floor(Math.random() * bgmTracks.length)];
+                }
+                bgmAudio.src = nextTrack;
+                bgmAudio.dataset.currentTrack = nextTrack;
+                bgmAudio.play().catch(() => {});
+            });
+        }
+
+        function startBackgroundMusic() {
+            if (!bgmAudio || bgmStarted) return;
+            bgmStarted = true;
+            bgmAudio.play().catch(() => {
+                bgmStarted = false;
+            });
+        }
 
         // DOM Elements
         const el = {
@@ -936,7 +1227,7 @@
                 const rotateX = ((y - centerY) / centerY) * -10; 
                 const rotateY = ((x - centerX) / centerX) * 10;
 
-                card.style.transform = `perspective(1000px) rotateX(deg) rotateY(deg) scale(1.02)`;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
                 
                 const holo = card.querySelector('.holo-overlay');
                 if(holo) {
@@ -957,13 +1248,20 @@
         document.addEventListener('mousemove', (e) => {
             cursor.style.left = e.clientX + 'px';
             cursor.style.top = e.clientY + 'px';
-            
-            // Enemy hover check
+
             const target = e.target.closest('.enemy-card');
             if (target) cursor.classList.add('enemy-hover');
             else cursor.classList.remove('enemy-hover');
-            
-            // General hover check
+
+            if (!archiveOpened && location.hash.replace('#', '') === 'archive') {
+                const dx = e.clientX - galaxyCenterX;
+                const dy = e.clientY - galaxyCenterY;
+                if (Math.sqrt(dx * dx + dy * dy) < BLACKHOLE_RADIUS + 20) cursor.classList.add('blackhole-hover');
+                else cursor.classList.remove('blackhole-hover');
+            } else {
+                cursor.classList.remove('blackhole-hover');
+            }
+
             if (e.target.closest('.hover-trigger')) cursor.classList.add('hovered');
             else if (!target) cursor.classList.remove('hovered');
         });
@@ -971,11 +1269,23 @@
         // Canvas Particles
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
-        let particles = [];
+        const galaxyCanvas = document.getElementById('galaxy-canvas');
+        const galaxyCtx = galaxyCanvas.getContext('2d');
+        let galaxyCenterX = 0;
+        let galaxyCenterY = 0;
+        let archiveStars = [];
+        const BLACKHOLE_RADIUS = 60;
 
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        window.addEventListener('resize', resizeCanvas);
+        function resizeGalaxy() {
+            galaxyCanvas.width = window.innerWidth;
+            galaxyCanvas.height = window.innerHeight;
+            galaxyCenterX = galaxyCanvas.width / 2;
+            galaxyCenterY = galaxyCanvas.height / 2;
+        }
+        window.addEventListener('resize', () => { resizeCanvas(); resizeGalaxy(); });
         resizeCanvas();
+        resizeGalaxy();
 
         class Particle {
             constructor() {
@@ -1020,6 +1330,89 @@
             requestAnimationFrame(animateParticles);
         }
 
+        class ArchiveStar {
+            constructor() {
+                this.reset();
+                this.angle = Math.random() * Math.PI * 2;
+                this.radius = Math.random() * (Math.max(galaxyCanvas.width, galaxyCanvas.height) / 1.5) + BLACKHOLE_RADIUS;
+            }
+
+            reset() {
+                this.x = Math.random() * galaxyCanvas.width;
+                this.y = Math.random() * galaxyCanvas.height;
+                this.size = Math.random() * 1.5;
+                this.angle = Math.random() * Math.PI * 2;
+                this.radius = Math.random() * (Math.max(galaxyCanvas.width, galaxyCanvas.height) / 1.5) + BLACKHOLE_RADIUS;
+                this.speed = (Math.random() * 0.002) + 0.0005;
+                this.color = Math.random() > 0.7 ? '#bc13fe' : '#00f3ff';
+            }
+
+            update() {
+                if (!archiveOpened) {
+                    this.angle += this.speed;
+                    this.radius -= 0.1;
+
+                    if (this.radius < BLACKHOLE_RADIUS) {
+                        this.radius = Math.max(galaxyCanvas.width, galaxyCanvas.height) / 1.5;
+                    }
+
+                    this.x = galaxyCenterX + Math.cos(this.angle) * this.radius;
+                    this.y = galaxyCenterY + Math.sin(this.angle) * this.radius * 0.4;
+                } else {
+                    this.x += (this.x - galaxyCenterX) * 0.005;
+                    this.y += (this.y - galaxyCenterY) * 0.005;
+
+                    if (this.x < 0 || this.x > galaxyCanvas.width || this.y < 0 || this.y > galaxyCanvas.height) {
+                        this.x = Math.random() * galaxyCanvas.width;
+                        this.y = Math.random() * galaxyCanvas.height;
+                    }
+                }
+            }
+
+            draw() {
+                const alpha = archiveOpened ? 0.3 : (this.radius - BLACKHOLE_RADIUS) / 200;
+                galaxyCtx.globalAlpha = Math.max(0, Math.min(1, alpha));
+                galaxyCtx.fillStyle = this.color;
+                galaxyCtx.beginPath();
+                galaxyCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                galaxyCtx.fill();
+            }
+        }
+
+        function initGalaxyStars() {
+            archiveStars = [];
+            for (let i = 0; i < 800; i++) {
+                archiveStars.push(new ArchiveStar());
+            }
+        }
+
+        function renderGalaxy() {
+            galaxyCtx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+            galaxyCtx.fillRect(0, 0, galaxyCanvas.width, galaxyCanvas.height);
+
+            if (!archiveOpened) {
+                galaxyCtx.beginPath();
+                galaxyCtx.arc(galaxyCenterX, galaxyCenterY, BLACKHOLE_RADIUS, 0, Math.PI * 2);
+                galaxyCtx.fillStyle = 'black';
+                galaxyCtx.fill();
+
+                galaxyCtx.shadowBlur = 20;
+                galaxyCtx.shadowColor = 'white';
+                galaxyCtx.strokeStyle = 'rgba(255,255,255,0.5)';
+                galaxyCtx.lineWidth = 2;
+                galaxyCtx.stroke();
+                galaxyCtx.shadowBlur = 0;
+            }
+
+            archiveStars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            galaxyCtx.globalAlpha = 1;
+            requestAnimationFrame(renderGalaxy);
+        }
+
         // --- Navbar Clock Logic ---
         function updateSystemTime() {
             const now = new Date();
@@ -1033,10 +1426,91 @@
         setInterval(updateSystemTime, 1000);
         updateSystemTime();
 
-        
+        // --- SPA Routing ---
+        function updateArchiveActionVisibility() {
+            const trigger = document.getElementById('particle-sim-trigger');
+            if (!trigger) return;
+            const shouldShow = archiveOpened && location.hash.replace('#', '') === 'archive';
+            trigger.classList.toggle('hidden', !shouldShow);
+        }
+
+        function setPage(page) {
+            const validPages = ['home', 'archive'];
+            const normalized = validPages.includes(page) ? page : 'home';
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.toggle('active', section.id === `${normalized}-section`);
+            });
+            document.querySelectorAll('.nav-link[data-target]').forEach(link => {
+                link.classList.toggle('active', link.dataset.target === normalized);
+            });
+            if (location.hash !== `#${normalized}`) {
+                history.replaceState(null, '', `#${normalized}`);
+            }
+            const bgCanvas = document.getElementById('bg-canvas');
+            const galaxyCanvas = document.getElementById('galaxy-canvas');
+            const introLayer = document.getElementById('intro-layer');
+            const archiveLayer = document.getElementById('archive-layer');
+            if (normalized === 'archive') {
+                if (bgCanvas) bgCanvas.style.display = 'none';
+                if (galaxyCanvas) galaxyCanvas.style.display = 'block';
+                if (introLayer && archiveLayer) {
+                    if (!archiveOpened) {
+                        introLayer.classList.remove('hidden');
+                        archiveLayer.classList.remove('visible');
+                    } else {
+                        introLayer.classList.add('hidden');
+                        archiveLayer.classList.add('visible');
+                    }
+                }
+            } else {
+                if (bgCanvas) bgCanvas.style.display = 'block';
+                if (galaxyCanvas) galaxyCanvas.style.display = 'none';
+                if (introLayer) introLayer.classList.add('hidden');
+                if (archiveLayer) archiveLayer.classList.remove('visible');
+            }
+            updateArchiveActionVisibility();
+        }
+
+        function openArchiveView() {
+            const introLayer = document.getElementById('intro-layer');
+            const archiveLayer = document.getElementById('archive-layer');
+            archiveOpened = true;
+            if (introLayer) introLayer.classList.add('hidden');
+            if (archiveLayer) archiveLayer.classList.add('visible');
+            updateArchiveActionVisibility();
+            l2d();
+        }
+
+        document.querySelectorAll('.nav-link[data-target]').forEach(link => {
+            link.addEventListener('click', event => {
+                const target = link.dataset.target;
+                if (!target) return;
+                event.preventDefault();
+                setPage(target);
+            });
+        });
+
+        galaxyCanvas.addEventListener('click', (e) => {
+            if (location.hash.replace('#', '') !== 'archive' || archiveOpened) return;
+            const dx = e.clientX - galaxyCenterX;
+            const dy = e.clientY - galaxyCenterY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < BLACKHOLE_RADIUS + 20) {
+                openArchiveView();
+            }
+        });
+
+        window.addEventListener('hashchange', () => {
+            setPage(location.hash.replace('#', '') || 'home');
+        });
+
+        setPage(location.hash.replace('#', '') || 'home');
 
         initParticles();
         animateParticles();
+        initGalaxyStars();
+        renderGalaxy();
 
         
         // --- INIT GAME (load data from JSON) ---
@@ -1051,6 +1525,510 @@
             updateUI();
         });
 
+        // --- Archive Section Logic ---
+        class PlanetGenerator {
+            constructor() {
+                this.palettes = [
+                    { name: 'Earth', water: '#2a5b8c', land: ['#4a7f50', '#3a6a40', '#9a8f6d'], cloud: 'rgba(255,255,255,0.5)', atmosphere: '#4facfe' },
+                    { name: 'Mars', water: '#8d3e3e', land: ['#ac5b4e', '#d57d6e', '#793222'], cloud: 'rgba(200,150,150,0.3)', atmosphere: '#ff5e62' },
+                    { name: 'Ice', water: '#b1d4ff', land: ['#d2f9ff', '#f0e3fc', '#ffffff'], cloud: 'rgba(255,255,255,0.7)', atmosphere: '#c2e9fb' },
+                    { name: 'Gas', water: '#4b2075', land: ['#85a7ee', '#6d4c92', '#220033'], cloud: 'rgba(100,255,218,0.2)', atmosphere: '#7597de' },
+                    { name: 'Toxic', water: '#1f4037', land: ['#305a63', '#3c7384', '#00ffaa'], cloud: 'rgba(50,255,50,0.3)', atmosphere: '#00ff9d' },
+                    { name: 'Lava', water: '#430b6d', land: ['#ec6343', '#ff2854', '#ffc1a9'], cloud: 'rgba(255,100,50,0.4)', atmosphere: '#ff0844' }
+                ];
+            }
+
+            rand(min, max) { return Math.random() * (max - min) + min; }
+
+            draw(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+                const cx = w / 2;
+                const cy = h / 2;
+                const r = w / 2;
+                const palette = this.palettes[Math.floor(Math.random() * this.palettes.length)];
+
+                ctx.clearRect(0, 0, w, h);
+
+                const grad = ctx.createRadialGradient(cx - r/3, cy - r/3, 0, cx, cy, r);
+                grad.addColorStop(0, palette.water);
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.clip();
+
+                const landCount = Math.floor(this.rand(10, 25));
+                for (let i = 0; i < landCount; i++) {
+                    ctx.fillStyle = palette.land[Math.floor(Math.random() * palette.land.length)];
+                    ctx.beginPath();
+                    const lx = this.rand(0, w);
+                    const ly = this.rand(0, h);
+                    const lr = this.rand(10, 60);
+                    ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.globalCompositeOperation = 'screen';
+                const cloudCount = Math.floor(this.rand(5, 12));
+                ctx.fillStyle = palette.cloud;
+                for (let i = 0; i < cloudCount; i++) {
+                    ctx.beginPath();
+                    const cW = this.rand(20, w);
+                    const cH = this.rand(5, 15);
+                    const cX = this.rand(0, w);
+                    const cY = this.rand(0, h);
+                    ctx.ellipse(cX, cY, cW, cH, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.restore();
+
+                const shadowGrad = ctx.createRadialGradient(cx - r/2.5, cy - r/2.5, r/3, cx, cy, r);
+                shadowGrad.addColorStop(0, 'transparent');
+                shadowGrad.addColorStop(0.7, 'rgba(0,0,0,0.1)');
+                shadowGrad.addColorStop(1, 'rgba(0,0,0,0.7)');
+                ctx.fillStyle = shadowGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fill();
+
+                const highlightGrad = ctx.createRadialGradient(cx - r/3, cy - r/3, 0, cx - r/3, cy - r/3, r/2);
+                highlightGrad.addColorStop(0, 'rgba(255,255,255,0.4)');
+                highlightGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = highlightGrad;
+                ctx.beginPath();
+                ctx.arc(cx - r/3, cy - r/3, r/2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = palette.atmosphere;
+                ctx.lineWidth = 4;
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r - 2, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+
+                return palette.atmosphere;
+            }
+        }
+
+        function textToHtml(text) {
+            if (!text) return '';
+            return text.split('\n').map(line => line.trim() === '' ? '<br/>' : `<p>${line}</p>`).join('');
+        }
+
+        function renderDesc(e) {
+            if (e.type === 'music') {
+                return `
+                    <div class="flex flex-col items-center justify-center text-center h-full space-y-4">
+                        <div class="w-16 h-1 bg-white/20 mb-4"></div>
+                        <h3 class="text-3xl font-orbitron text-white tracking-widest">${e.title}</h3>
+                        <p class="text-xs font-mono text-gray-400 tracking-wider border-b border-gray-700 pb-2">${e.credits}</p>
+                        <div class="py-6 text-gray-300 font-light leading-loose text-sm"><p>点击下方按钮</p></div>
+                        <div class="relative group cursor-pointer hover-trigger" id="music-trigger">
+                            <button class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center text-xl shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all transform group-hover:scale-110 group-hover:shadow-[0_0_50px_rgba(255,255,255,0.6)]">
+                                <i class="fas fa-play ml-1" id="play-icon"></i>
+                            </button>
+                            <audio id="planet-audio" src="${e.audioSrc}"></audio>
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-4 font-mono animate-pulse">${e.footer}</p>
+                    </div>`;
+            }
+            return textToHtml(e.desc);
+        }
+
+        const archiveContainer = document.getElementById('planet-container');
+        const archiveGenerator = new PlanetGenerator();
+
+        archiveContainer.addEventListener('wheel', (e) => {
+            if (e.deltaY !== 0) {
+                e.preventDefault();
+                archiveContainer.scrollLeft += e.deltaY;
+            }
+        });
+
+        fetch('data/archive.json')
+            .then(r => r.json())
+            .then(data => {
+                return Promise.all(data.entries.map(e => {
+                    if (e.file) {
+                        return fetch(e.file)
+                            .then(r => {
+                                if (!r.ok) throw new Error(`Failed to load ${e.file}`);
+                                return r.text();
+                            })
+                            .then(html => ({ ...e, desc: html }))
+                            .catch(err => {
+                                return { ...e, desc: `<p>加载失败: ${e.file}</p>` };
+                            });
+                    }
+                    return Promise.resolve({ ...e, desc: renderDesc(e) });
+                }));
+            })
+            .then(projects => {
+                projects.forEach((p, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'planet-wrapper hover-trigger';
+                    wrapper.style.animationDelay = `${index * 0.1}s`;
+                    wrapper.onclick = () => openViewModal(p);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 280;
+                    canvas.height = 280;
+                    const glowColor = archiveGenerator.draw(canvas);
+                    wrapper.innerHTML = `
+                        <div class="planet" style="--glow-color: ${glowColor}"></div>
+                        <div class="orbit-ring"></div>
+                        <div class="planet-label">${p.title}</div>
+                    `;
+                    wrapper.querySelector('.planet').appendChild(canvas);
+                    archiveContainer.appendChild(wrapper);
+                });
+            })
+            .catch(err => {
+                console.error('Error loading archive:', err);
+            });
+
+        function openModal(type) {
+            document.getElementById(`${type}-modal`).classList.add('open');
+            if (type === 'add') {
+                setTimeout(initGame, 300);
+            }
+        }
+
+        function closeModal(type) {
+            document.getElementById(`${type}-modal`).classList.remove('open');
+            if (type === 'view') {
+                const audio = document.getElementById('planet-audio');
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            }
+            if (type === 'add') {
+                stopGame();
+            }
+        }
+
+        // --- 粒子生态模拟 ---
+        const gameCanvas = document.getElementById('genesis-canvas');
+        const gameCtx = gameCanvas ? gameCanvas.getContext('2d') : null;
+        let gameReq;
+        let particlesGame = [];
+        let ruleMatrix = {};
+        const RED = '#ff2a2a';
+        const GREEN = '#00ff9d';
+        const BLUE = '#00f3ff';
+        const WHITE = '#ffffff';
+        const colors = [RED, GREEN, BLUE, WHITE];
+        const mouse = { x: 0, y: 0, active: false };
+        let atomCount = 600;
+        const MAX_ATOMS = 800;
+        const MAX_SPEED = 2.0;
+        const FRICTION = 0.85;
+        const FORCE_SCALE = 0.2;
+        let epoch = 0;
+
+        class Atom {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.color = color;
+                this.dead = false;
+                this.age = 0;
+                this.hp = 100;
+            }
+        }
+
+        if (gameCanvas) {
+            gameCanvas.addEventListener('mousemove', (e) => {
+                const rect = gameCanvas.getBoundingClientRect();
+                mouse.x = e.clientX - rect.left;
+                mouse.y = e.clientY - rect.top;
+                mouse.active = true;
+            });
+
+            gameCanvas.addEventListener('mouseleave', () => {
+                mouse.active = false;
+            });
+        }
+
+        function randomRules() {
+            for (let i = 0; i < colors.length; i++) {
+                for (let j = 0; j < colors.length; j++) {
+                    ruleMatrix[`${colors[i]}-${colors[j]}`] = (Math.random() * 2 - 1);
+                }
+            }
+            const status = document.getElementById('sim-status');
+            if (status) {
+                status.innerText = 'RULES_MUTATED';
+                status.style.color = '#bc13fe';
+                setTimeout(() => {
+                    status.innerText = 'STABLE';
+                    status.style.color = 'var(--primary)';
+                }, 1000);
+            }
+        }
+
+        function createAtoms(count = atomCount) {
+            particlesGame = [];
+            for (let i = 0; i < count; i++) {
+                particlesGame.push(new Atom(
+                    Math.random() * gameCanvas.width,
+                    Math.random() * gameCanvas.height,
+                    colors[Math.floor(Math.random() * colors.length)]
+                ));
+            }
+            updateCountDisplay();
+        }
+
+        function updateCountDisplay() {
+            const el = document.getElementById('sim-count');
+            if (el) el.innerText = particlesGame.length;
+        }
+
+        function updateAtoms() {
+            for (let i = 0; i < particlesGame.length; i++) {
+                const a = particlesGame[i];
+                if (a.dead) continue;
+
+                let fx = 0;
+                let fy = 0;
+
+                if (a.color === BLUE) {
+                    a.age++;
+                    if (a.age > 600) {
+                        a.dead = true;
+                        continue;
+                    }
+                }
+
+                for (let j = 0; j < particlesGame.length; j++) {
+                    if (i === j) continue;
+                    const b = particlesGame[j];
+                    if (b.dead) continue;
+
+                    const g = ruleMatrix[`${a.color}-${b.color}`];
+                    const dx = a.x - b.x;
+                    const dy = a.y - b.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+
+                    if (d > 0 && d < 100) {
+                        let force = 0;
+                        if (d < 10) {
+                            force = a.color === b.color ? (10 - d) * 0.1 : 0;
+                        } else {
+                            force = (g * FORCE_SCALE) / d;
+                        }
+                        fx += force * dx;
+                        fy += force * dy;
+
+                        if (d < 10) {
+                            if (a.color === RED && b.color === GREEN) {
+                                b.dead = true;
+                            }
+                            if (a.color === BLUE && b.color === RED) {
+                                b.hp -= 5;
+                                if (b.hp <= 0) b.dead = true;
+                            }
+                        }
+                    }
+                }
+
+                if (mouse.active) {
+                    const mdx = a.x - mouse.x;
+                    const mdy = a.y - mouse.y;
+                    const md = Math.sqrt(mdx * mdx + mdy * mdy);
+                    if (md > 0 && md < 150) {
+                        const mForce = (150 - md) * 0.02;
+                        fx += (mdx / md) * mForce;
+                        fy += (mdy / md) * mForce;
+                    }
+                }
+
+                a.vx = (a.vx + fx) * FRICTION;
+                a.vy = (a.vy + fy) * FRICTION;
+
+                const speed = Math.sqrt(a.vx * a.vx + a.vy * a.vy);
+                if (speed > MAX_SPEED) {
+                    const ratio = MAX_SPEED / speed;
+                    a.vx *= ratio;
+                    a.vy *= ratio;
+                }
+
+                a.x += a.vx;
+                a.y += a.vy;
+
+                if (a.x <= 0 || a.x >= gameCanvas.width) a.vx *= -1;
+                if (a.y <= 0 || a.y >= gameCanvas.height) a.vy *= -1;
+                a.x = Math.max(0, Math.min(gameCanvas.width, a.x));
+                a.y = Math.max(0, Math.min(gameCanvas.height, a.y));
+            }
+        }
+
+        function drawGame() {
+            if (!gameCtx) return;
+            gameCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            if (epoch % 5 === 0) {
+                particlesGame = particlesGame.filter(p => !p.dead);
+            }
+
+            for (let i = 0; i < particlesGame.length; i++) {
+                const a = particlesGame[i];
+                gameCtx.fillStyle = a.color;
+                gameCtx.beginPath();
+                gameCtx.arc(a.x, a.y, 1.5, 0, Math.PI * 2);
+                gameCtx.fill();
+            }
+
+            updateAtoms();
+
+            if (epoch % 2 === 0 && particlesGame.length < MAX_ATOMS) {
+                const spawnColor = colors[Math.floor(Math.random() * 3)];
+                particlesGame.push(new Atom(
+                    Math.random() * gameCanvas.width,
+                    Math.random() * gameCanvas.height,
+                    spawnColor
+                ));
+            }
+
+            updateCountDisplay();
+            epoch++;
+            if (epoch % 10 === 0) {
+                const epEl = document.getElementById('sim-epoch');
+                if (epEl) epEl.innerText = epoch;
+            }
+
+            gameReq = requestAnimationFrame(drawGame);
+        }
+
+        function initGame() {
+            const container = document.getElementById('game-container');
+            if (!container || !gameCanvas || !gameCtx) return;
+            gameCanvas.width = container.clientWidth;
+            gameCanvas.height = container.clientHeight;
+            randomRules();
+            createAtoms(600);
+            epoch = 0;
+            if (gameReq) cancelAnimationFrame(gameReq);
+            drawGame();
+        }
+
+        function stopGame() {
+            if (gameReq) cancelAnimationFrame(gameReq);
+        }
+
+        function resetSimulation() {
+            createAtoms();
+            epoch = 0;
+        }
+
+        function mutateRules() {
+            randomRules();
+        }
+
+        function openViewModal(project) {
+            document.getElementById('modal-title').innerText = project.title;
+            document.getElementById('modal-date').innerText = project.date || '';
+            const contentContainer = document.getElementById('modal-content');
+            contentContainer.innerHTML = project.desc;
+            openModal('view');
+
+            const trigger = document.getElementById('music-trigger');
+            const audio = document.getElementById('planet-audio');
+            const icon = document.getElementById('play-icon');
+
+            if (trigger && audio && icon) {
+                trigger.onclick = function() {
+                    if (audio.paused) {
+                        audio.play();
+                        icon.className = 'fas fa-pause';
+                        trigger.querySelector('button').classList.add('animate-spin-slow');
+                    } else {
+                        audio.pause();
+                        icon.className = 'fas fa-play ml-1';
+                        trigger.querySelector('button').classList.remove('animate-spin-slow');
+                    }
+                };
+                audio.onended = function() {
+                    icon.className = 'fas fa-play ml-1';
+                    trigger.querySelector('button').classList.remove('animate-spin-slow');
+                };
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupBackgroundMusic();
+            document.addEventListener('pointerdown', startBackgroundMusic, { once: true });
+            document.addEventListener('keydown', startBackgroundMusic, { once: true });
+            if (location.hash.replace('#', '') === 'archive') {
+                l2d();
+            }
+        });
+
+        function l2d(){
+            if (window.__archiveLive2dLoaded) return;
+            window.__archiveLive2dLoaded = true;
+            OML2D.loadOml2d({
+                initialStatus:"sleep",
+                dockedPosition:"right",
+                models: [
+                    {
+                        name: "宅久",
+                        path: 'l2ds/宅久/2-3.model3.json',
+                        position: [-30, 100],
+                        scale: 0.08,
+                        mobileScale: 0.06,
+                        stageStyle: {
+                            height: 450
+                        }
+                    }
+                ],
+                tips: {
+                    welcomeTips:{
+                        duration:5000,
+                        message:{
+                            afternoon: "今天的计划是什么呢？",
+                            daybreak: "居然起这么早吗？好厉害！",
+                            dusk: "晚上吃什么呢？",
+                            lateNight: "今天也辛苦啦~",
+                            morning: "早上好，要来看点什么呢？",
+                            night: "晚上好，要来看点什么呢？",
+                            noon: "中午吃什么呢？",
+                            weeHours: "太晚啦，我要睡觉哩！"
+                        }
+                    },
+                    copyTips:{
+                        message:[
+                            "复制了什么让我看看~"
+                        ]
+                    },
+                    idleTips:{
+                        message:[
+                            "吾日三省吾身：早饭吃什么、午饭吃什么、晚饭吃什么。",
+                            "每一步都很了不起哦！累了的话，我就在这儿。",
+                            "你不在的时候，我会乖乖数着云朵等你回来~",
+                            "突然想到！如果我是甜品，会不会是甜甜的舒芙蕾呢？",
+                            "专注的时候时间过得特别快呢~",
+                            "偶尔看看窗外，让眼睛休息一下哦。",
+                            "你猜，我是不是在偷偷数你一天点开了我多少次哩~",
+                            "我的心就像玻璃做的储物罐，里面装满了你今天说过的话。",
+                            "你的指尖点过屏幕的温度…是我最熟悉的晴天呢~"
+                        ]
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
